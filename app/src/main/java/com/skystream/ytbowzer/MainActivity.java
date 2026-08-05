@@ -3,18 +3,23 @@ package com.skystream.ytbowzer;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.RadioGroup;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import java.io.ByteArrayInputStream;
 
@@ -24,11 +29,9 @@ import java.io.ByteArrayInputStream;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String HOME_URL = "https://m.youtube.com/";
-
-    private static final String MOBILE_USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) "
-                    + "Chrome/120.0.0.0 Mobile Safari/537.36";
+    private static final String PREFS_NAME = "ytbowzer_prefs";
+    private static final String KEY_THEME = "theme";
+    private static final String KEY_DESKTOP_MODE = "desktop_mode";
 
     /** Hides ad containers that are rendered inline by the page itself. */
     private static final String AD_HIDING_SCRIPT =
@@ -102,23 +105,39 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     private WebView webView;
+    private View settingsButton;
+    private SharedPreferences prefs;
+    private boolean desktopMode;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        desktopMode = prefs.getBoolean(KEY_DESKTOP_MODE, false);
+        applyTheme(prefs.getInt(KEY_THEME, Preferences.THEME_SYSTEM));
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webview);
+        settingsButton = findViewById(R.id.settings_button);
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPreferences();
+            }
+        });
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setUserAgentString(MOBILE_USER_AGENT);
+        settings.setUserAgentString(Preferences.userAgent(desktopMode));
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setSupportZoom(false);
+        settings.setSupportZoom(desktopMode);
+        settings.setBuiltInZoomControls(desktopMode);
+        settings.setDisplayZoomControls(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -138,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
         } else {
-            webView.loadUrl(HOME_URL);
+            webView.loadUrl(Preferences.homeUrl(desktopMode));
         }
     }
 
@@ -168,6 +187,80 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private void applyTheme(int theme) {
+        int mode;
+        if (theme == Preferences.THEME_LIGHT) {
+            mode = AppCompatDelegate.MODE_NIGHT_NO;
+        } else if (theme == Preferences.THEME_DARK) {
+            mode = AppCompatDelegate.MODE_NIGHT_YES;
+        } else {
+            mode = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+        }
+        AppCompatDelegate.setDefaultNightMode(mode);
+    }
+
+    private void updateSettingsButton(String url) {
+        settingsButton.setVisibility(Preferences.isHomePage(url) ? View.VISIBLE : View.GONE);
+    }
+
+    private void showPreferences() {
+        View content = getLayoutInflater().inflate(R.layout.dialog_preferences, null);
+        RadioGroup themeGroup = content.findViewById(R.id.theme_group);
+        RadioGroup siteModeGroup = content.findViewById(R.id.site_mode_group);
+
+        int theme = prefs.getInt(KEY_THEME, Preferences.THEME_SYSTEM);
+        if (theme == Preferences.THEME_LIGHT) {
+            themeGroup.check(R.id.theme_light);
+        } else if (theme == Preferences.THEME_DARK) {
+            themeGroup.check(R.id.theme_dark);
+        } else {
+            themeGroup.check(R.id.theme_system);
+        }
+        siteModeGroup.check(desktopMode ? R.id.site_mode_desktop : R.id.site_mode_mobile);
+
+        themeGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                int selected = Preferences.THEME_SYSTEM;
+                if (checkedId == R.id.theme_light) {
+                    selected = Preferences.THEME_LIGHT;
+                } else if (checkedId == R.id.theme_dark) {
+                    selected = Preferences.THEME_DARK;
+                }
+                if (selected == prefs.getInt(KEY_THEME, Preferences.THEME_SYSTEM)) {
+                    return;
+                }
+                prefs.edit().putInt(KEY_THEME, selected).apply();
+                applyTheme(selected);
+            }
+        });
+
+        siteModeGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                boolean wantsDesktop = checkedId == R.id.site_mode_desktop;
+                if (wantsDesktop == desktopMode) {
+                    return;
+                }
+                desktopMode = wantsDesktop;
+                prefs.edit().putBoolean(KEY_DESKTOP_MODE, wantsDesktop).apply();
+                WebSettings webSettings = webView.getSettings();
+                webSettings.setUserAgentString(Preferences.userAgent(wantsDesktop));
+                webSettings.setSupportZoom(wantsDesktop);
+                webSettings.setBuiltInZoomControls(wantsDesktop);
+                webSettings.setDisplayZoomControls(false);
+                webView.clearHistory();
+                webView.loadUrl(Preferences.homeUrl(wantsDesktop));
+            }
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.preferences)
+                .setView(content)
+                .setPositiveButton(R.string.close, null)
+                .show();
     }
 
     private void openExternally(String url) {
@@ -222,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
+            updateSettingsButton(url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
         }
@@ -229,6 +323,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
+            updateSettingsButton(url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             CookieManager.getInstance().flush();

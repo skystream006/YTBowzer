@@ -1,0 +1,86 @@
+package com.skystream.ytbowzer;
+
+import java.util.Locale;
+
+/**
+ * User preference values and the URL/user-agent rules that depend on them. Kept free of
+ * Android dependencies so it can be unit tested on the JVM.
+ */
+public final class Preferences {
+
+    /** Follow the system-wide dark/light setting. */
+    public static final int THEME_SYSTEM = 0;
+    public static final int THEME_LIGHT = 1;
+    public static final int THEME_DARK = 2;
+
+    static final String MOBILE_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) "
+                    + "Chrome/120.0.0.0 Mobile Safari/537.36";
+
+    static final String DESKTOP_USER_AGENT =
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                    + "Chrome/120.0.0.0 Safari/537.36";
+
+    static final String MOBILE_HOME_URL = "https://m.youtube.com/";
+    static final String DESKTOP_HOME_URL = "https://www.youtube.com/";
+
+    private Preferences() {
+    }
+
+    /**
+     * @param desktopMode true when the user asked for the desktop site
+     * @return the user agent the WebView should report
+     */
+    public static String userAgent(boolean desktopMode) {
+        return desktopMode ? DESKTOP_USER_AGENT : MOBILE_USER_AGENT;
+    }
+
+    /**
+     * @param desktopMode true when the user asked for the desktop site
+     * @return the YouTube start page matching the mode
+     */
+    public static String homeUrl(boolean desktopMode) {
+        return desktopMode ? DESKTOP_HOME_URL : MOBILE_HOME_URL;
+    }
+
+    /**
+     * The floating settings button is only shown on the YouTube home page, i.e. the page
+     * that carries the bottom navigation bar.
+     *
+     * @param url the currently loaded URL
+     * @return true when the settings button should be visible
+     */
+    public static boolean isHomePage(String url) {
+        if (url == null) {
+            return false;
+        }
+        String lower = url.toLowerCase(Locale.US);
+        int scheme = lower.indexOf("://");
+        if (scheme < 0) {
+            return false;
+        }
+        int pathStart = scheme + 3;
+        while (pathStart < lower.length()) {
+            char c = lower.charAt(pathStart);
+            if (c == '/' || c == '?' || c == '#') {
+                break;
+            }
+            pathStart++;
+        }
+        String host = lower.substring(scheme + 3, pathStart);
+        if (!host.equals("youtube.com") && !host.endsWith(".youtube.com")) {
+            return false;
+        }
+        String rest = lower.substring(pathStart);
+        int cut = rest.length();
+        for (int i = 0; i < rest.length(); i++) {
+            char c = rest.charAt(i);
+            if (c == '?' || c == '#') {
+                cut = i;
+                break;
+            }
+        }
+        String path = rest.substring(0, cut);
+        return path.isEmpty() || path.equals("/");
+    }
+}

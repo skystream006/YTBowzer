@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">YTBowzer</string>
+    <string name="settings">Settings</string>
+    <string name="preferences">Preferences</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light mode</string>
+    <string name="theme_dark">Dark mode</string>
+    <string name="site_mode">Site mode</string>
+    <string name="site_mode_mobile">Mobile site</string>
+    <string name="site_mode_desktop">Desktop site</string>
+    <string name="close">Close</string>
 </resources>
