@@ -74,5 +74,9 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("setAttribute('poster',thumbnail)"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("setInterval"));
+        assertTrue(script.contains("yt-navigate-start"));
+        assertTrue(script.contains("yt-navigate-finish"));
+        assertTrue(script.contains("removeAttribute('poster')"));
+        assertTrue(script.contains("details.videoId===videoId"));
     }
 }
