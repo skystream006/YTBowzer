@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_DESKTOP_MODE = "desktop_mode";
 
     /** Hides ad containers that are rendered inline by the page itself. */
-    private static final String AD_HIDING_SCRIPT =
+    static final String AD_HIDING_SCRIPT =
             "(function(){"
                     + "var id='ytbowzer-adblock';"
                     + "if(document.getElementById(id)){return;}"
@@ -50,6 +50,14 @@ public class MainActivity extends AppCompatActivity {
                     + "ytm-statement-banner-renderer,"
                     + "ytm-ad-slot-renderer,"
                     + "ytm-promoted-sparkles-text-search-renderer,"
+                    + "ytm-product-card-renderer,"
+                    + "ytm-shopping-offer-renderer,"
+                    + "ytm-merch-shelf-renderer,"
+                    + "ytd-product-card-renderer,"
+                    + "ytd-shopping-offer-renderer,"
+                    + "ytd-merch-shelf-renderer,"
+                    + ".ytp-shopping-overlay,"
+                    + ".ytp-suggested-action,"
                     + ".ad-showing .video-ads,"
                     + ".ytp-ad-module,"
                     + ".ytp-ad-overlay-container,"
@@ -118,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
                     + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
                     + "for(var i=0;i<nodes.length;i++){"
                     + "var el=nodes[i];"
-                    + "if(/\\bbuy\\s+now\\b/.test(textOf(el))){"
+                    + "if(/\\bbuy\\s+(it\\s+)?now\\b/.test(textOf(el))){"
                     + "var target=el.closest('ytm-product-card-renderer,ytm-shopping-offer-renderer,"
                     + "ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,"
                     + "ytd-product-card-renderer,ytd-shopping-offer-renderer')||el;"
@@ -134,7 +142,14 @@ public class MainActivity extends AppCompatActivity {
                     + "if(node.nodeType===1){removeBuyNow(node);}"
                     + "}"
                     + "}"
-                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "for(var k=0;k<mutations.length;k++){"
+                    + "var target=mutations[k].target;"
+                    + "if(target&&target.nodeType===1){removeBuyNow(target);}"
+                    + "}"
+                    + "}).observe(document.documentElement,"
+                    + "{childList:true,subtree:true,characterData:true,attributes:true,"
+                    + "attributeFilter:['aria-label','title']});"
+                    + "setInterval(function(){removeBuyNow(document);},2000);"
                     + "})()";
 
     private WebView webView;
