@@ -1,10 +1,8 @@
 package com.skystream.ytbowzer;
 
 import android.annotation.SuppressLint;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -105,6 +103,40 @@ public class MainActivity extends AppCompatActivity {
                     + "prune(window.ytInitialData,0);"
                     + "})()";
 
+    /** Removes shopping call-to-action buttons that can be added after page load. */
+    static final String BUY_NOW_CLEANUP_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerBuyNowCleanupInstalled){return;}"
+                    + "window.__ytbowzerBuyNowCleanupInstalled=true;"
+                    + "var selector='a,button,[role=\"button\"],[aria-label],[title]';"
+                    + "function textOf(el){return ((el.innerText||el.textContent||'')+' '+"
+                    + "(el.getAttribute('aria-label')||'')+' '+(el.getAttribute('title')||''))"
+                    + ".replace(/\\s+/g,' ').trim().toLowerCase();}"
+                    + "function asArray(list){return Array.prototype.slice.call(list);}"
+                    + "function removeBuyNow(root){"
+                    + "var nodes=(root&&root.querySelectorAll)?asArray(root.querySelectorAll(selector)):[];"
+                    + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
+                    + "for(var i=0;i<nodes.length;i++){"
+                    + "var el=nodes[i];"
+                    + "if(/\\bbuy\\s+now\\b/.test(textOf(el))){"
+                    + "var target=el.closest('ytm-product-card-renderer,ytm-shopping-offer-renderer,"
+                    + "ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,"
+                    + "ytd-product-card-renderer,ytd-shopping-offer-renderer')||el;"
+                    + "target.remove();"
+                    + "}"
+                    + "}"
+                    + "}"
+                    + "removeBuyNow(document);"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){removeBuyNow(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "})()";
+
     private WebView webView;
     private View settingsButton;
     private SharedPreferences prefs;
@@ -134,8 +166,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setUserAgentString(Preferences.userAgent(desktopMode));
         settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        settings.setSupportMultipleWindows(false);
         settings.setSupportZoom(desktopMode);
         settings.setBuiltInZoomControls(desktopMode);
         settings.setDisplayZoomControls(false);
@@ -158,8 +192,15 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
         } else {
-            webView.loadUrl(Preferences.homeUrl(desktopMode));
+            webView.loadUrl(startUrl(getIntent()));
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        webView.loadUrl(startUrl(intent));
     }
 
     @Override
@@ -266,15 +307,15 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void openExternally(String url) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addCategory(Intent.CATEGORY_BROWSABLE);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (ActivityNotFoundException ignored) {
-            // No app can handle the link; simply do nothing.
+    private String startUrl(Intent intent) {
+        if (intent != null && Intent.ACTION_VIEW.equals(intent.getAction())
+                && intent.getDataString() != null) {
+            String inAppUrl = SiteScope.normalizeInAppUrl(intent.getDataString());
+            if (inAppUrl != null) {
+                return inAppUrl;
+            }
         }
+        return Preferences.homeUrl(desktopMode);
     }
 
     private class YouTubeWebViewClient extends WebViewClient {
@@ -298,21 +339,25 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            return handleUrl(request.getUrl().toString());
+            return handleUrl(view, request.getUrl().toString());
         }
 
         @SuppressWarnings("deprecation")
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            return handleUrl(url);
+            return handleUrl(view, url);
         }
 
-        private boolean handleUrl(String url) {
-            if (SiteScope.isInAppUrl(url)) {
-                return false;
+        private boolean handleUrl(WebView view, String url) {
+            String inAppUrl = SiteScope.normalizeInAppUrl(url);
+            if (inAppUrl == null) {
+                return true;
             }
-            openExternally(url);
-            return true;
+            if (!inAppUrl.equals(url)) {
+                view.loadUrl(inAppUrl);
+                return true;
+            }
+            return false;
         }
 
         @Override
@@ -321,6 +366,7 @@ public class MainActivity extends AppCompatActivity {
             updateSettingsButton(url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
+            view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
         }
 
         @Override
@@ -329,6 +375,7 @@ public class MainActivity extends AppCompatActivity {
             updateSettingsButton(url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
+            view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 

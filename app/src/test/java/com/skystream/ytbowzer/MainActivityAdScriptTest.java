@@ -33,4 +33,13 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("prune(window.ytInitialPlayerResponse,0)"));
         assertTrue(script.contains("prune(window.ytInitialData,0)"));
     }
+
+    @Test
+    public void removesBuyNowButtonsAsynchronously() {
+        String script = MainActivity.BUY_NOW_CLEANUP_SCRIPT;
+        assertTrue(script.contains("BuyNowCleanupInstalled"));
+        assertTrue(script.contains("buy\\s+now"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("addedNodes"));
+    }
 }
