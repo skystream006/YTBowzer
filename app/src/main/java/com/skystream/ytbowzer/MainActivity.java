@@ -56,6 +56,51 @@ public class MainActivity extends AppCompatActivity {
                     + "(document.head||document.documentElement).appendChild(s);"
                     + "})()";
 
+    /**
+     * Removes ad-signaling keys (e.g. {@code playerAds}, {@code adPlacements}) from JSON
+     * data before the page's own scripts can read them. Mirrors uBlock Origin's
+     * {@code json-prune} scriptlet: since YouTube serves ad media from the same CDN as
+     * regular video, the only reliable way to stop in-stream ads is to strip the fields
+     * that tell the player where the ads are, before it schedules them.
+     */
+    static final String AD_JSON_PRUNE_SCRIPT =
+            "javascript:(function(){"
+                    + "if(window.__ytbowzerJsonPruneInstalled){return;}"
+                    + "window.__ytbowzerJsonPruneInstalled=true;"
+                    + "var AD_KEYS=['playerAds','adPlacements','adSlots','adBreakHeartbeatParams',"
+                    + "'playerAdParams','adPlacementConfig','adBreakParams'];"
+                    + "function prune(value,depth){"
+                    + "if(!value||typeof value!=='object'||depth>8){return;}"
+                    + "if(Array.isArray(value)){"
+                    + "for(var i=0;i<value.length;i++){prune(value[i],depth+1);}"
+                    + "return;"
+                    + "}"
+                    + "for(var i=0;i<AD_KEYS.length;i++){"
+                    + "if(AD_KEYS[i] in value){delete value[AD_KEYS[i]];}"
+                    + "}"
+                    + "for(var key in value){"
+                    + "if(Object.prototype.hasOwnProperty.call(value,key)){prune(value[key],depth+1);}"
+                    + "}"
+                    + "}"
+                    + "var originalParse=JSON.parse;"
+                    + "JSON.parse=function(){"
+                    + "var result=originalParse.apply(this,arguments);"
+                    + "prune(result,0);"
+                    + "return result;"
+                    + "};"
+                    + "if(window.Response&&Response.prototype.json){"
+                    + "var originalJson=Response.prototype.json;"
+                    + "Response.prototype.json=function(){"
+                    + "return originalJson.apply(this,arguments).then(function(result){"
+                    + "prune(result,0);"
+                    + "return result;"
+                    + "});"
+                    + "};"
+                    + "}"
+                    + "prune(window.ytInitialPlayerResponse,0);"
+                    + "prune(window.ytInitialData,0);"
+                    + "})()";
+
     private WebView webView;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -173,12 +218,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
+            view.loadUrl(AD_JSON_PRUNE_SCRIPT);
             view.loadUrl(AD_HIDING_SCRIPT);
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
+            view.loadUrl(AD_JSON_PRUNE_SCRIPT);
             view.loadUrl(AD_HIDING_SCRIPT);
             CookieManager.getInstance().flush();
         }
