@@ -72,7 +72,7 @@ jobs:
           pr_number="${{ github.event.pull_request.number }}"
           if [ -z "$pr_number" ]; then
             pr_number=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
-              --jq 'map(select(.state == "merged" or .state == "open")) | .[0].number // empty' 2>/dev/null || true)
+              --jq 'map(select(.state == "open" or .merged == true)) | .[0].number // empty' 2>/dev/null || true)
           fi
           if [ -z "$pr_number" ]; then
             echo "No pull request found for ${{ github.sha }}; using 0" >&2
