@@ -101,6 +101,45 @@ public class MainActivity extends AppCompatActivity {
                     + "prune(window.ytInitialData,0);"
                     + "})()";
 
+    /**
+     * Forces the HTML5 video element to keep attempting playback until it is actually
+     * playing. YouTube's mobile player sometimes stalls in a "paused" state after a page
+     * load or navigation even though {@code autoplay} was requested; this watches the
+     * video element and retries {@code play()} whenever it is paused/stalled, stopping
+     * once playback is confirmed (i.e. {@code playing} fires and it is no longer paused).
+     */
+    static final String AUTOPLAY_ENFORCER_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerAutoplayEnforcerInstalled){return;}"
+                    + "window.__ytbowzerAutoplayEnforcerInstalled=true;"
+                    + "function tryPlay(video){"
+                    + "if(!video||video.__ytbowzerPlaying){return;}"
+                    + "if(video.paused||video.ended){"
+                    + "var p=video.play();"
+                    + "if(p&&typeof p.catch==='function'){p.catch(function(){});}"
+                    + "}"
+                    + "}"
+                    + "function watch(video){"
+                    + "if(!video||video.__ytbowzerWatched){return;}"
+                    + "video.__ytbowzerWatched=true;"
+                    + "video.addEventListener('playing',function(){video.__ytbowzerPlaying=true;});"
+                    + "video.addEventListener('pause',function(){video.__ytbowzerPlaying=false;tryPlay(video);});"
+                    + "video.addEventListener('waiting',function(){tryPlay(video);});"
+                    + "video.addEventListener('stalled',function(){tryPlay(video);});"
+                    + "video.addEventListener('canplay',function(){tryPlay(video);});"
+                    + "video.addEventListener('loadedmetadata',function(){tryPlay(video);});"
+                    + "tryPlay(video);"
+                    + "}"
+                    + "function scan(){"
+                    + "var videos=document.getElementsByTagName('video');"
+                    + "for(var i=0;i<videos.length;i++){watch(videos[i]);}"
+                    + "}"
+                    + "scan();"
+                    + "setInterval(scan,1000);"
+                    + "var observer=new MutationObserver(scan);"
+                    + "observer.observe(document.documentElement,{childList:true,subtree:true});"
+                    + "})()";
+
     private WebView webView;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -224,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
             super.onPageStarted(view, url, favicon);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
+            view.evaluateJavascript(AUTOPLAY_ENFORCER_SCRIPT, null);
         }
 
         @Override
@@ -231,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
             super.onPageFinished(view, url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
+            view.evaluateJavascript(AUTOPLAY_ENFORCER_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 
