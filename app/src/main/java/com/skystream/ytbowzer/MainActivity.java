@@ -205,6 +205,85 @@ public class MainActivity extends AppCompatActivity {
                     + "}).observe(document.documentElement,{childList:true,subtree:true});"
                     + "})()";
 
+    /**
+     * Shows the channel's subscriber count as a small badge overlaid on the channel avatar,
+     * both on the mobile ({@code ytm-slim-owner-renderer}) and desktop
+     * ({@code ytd-video-owner-renderer}) watch page layouts.
+     */
+    static final String SUBSCRIBER_BADGE_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerSubBadgeInstalled){return;}"
+                    + "window.__ytbowzerSubBadgeInstalled=true;"
+                    + "var BADGE_CLASS='ytbowzer-sub-badge';"
+                    + "var STYLE_ID='ytbowzer-sub-badge-style';"
+                    + "if(!document.getElementById(STYLE_ID)){"
+                    + "var style=document.createElement('style');"
+                    + "style.id=STYLE_ID;"
+                    + "style.textContent='.'+BADGE_CLASS+'{position:absolute;left:0;bottom:-4px;"
+                    + "z-index:2;background:rgba(15,15,15,0.85);color:#fff;font-size:9px;"
+                    + "line-height:1.4;padding:1px 4px;border-radius:8px;white-space:nowrap;"
+                    + "pointer-events:none;font-family:Roboto,Arial,sans-serif;}';"
+                    + "(document.head||document.documentElement).appendChild(style);"
+                    + "}"
+                    + "var OWNER_SELECTOR='ytm-slim-owner-renderer,ytd-video-owner-renderer,"
+                    + "ytd-channel-name,ytm-channel-options-menu-button-renderer';"
+                    + "var SUB_TEXT_SELECTOR='.slim-owner-subscriber-count,#owner-sub-count,"
+                    + "#subscriber-count,yt-formatted-string#owner-sub-count';"
+                    + "var AVATAR_SELECTOR='yt-img-shadow,#avatar,img#img,.slim-owner-icon-badge,"
+                    + "ytm-channel-options-menu-button-renderer #img,ytd-video-owner-renderer #avatar';"
+                    + "function subscriberText(owner){"
+                    + "var el=owner.querySelector?owner.querySelector(SUB_TEXT_SELECTOR):null;"
+                    + "if(!el){return null;}"
+                    + "var text=(el.innerText||el.textContent||'').trim();"
+                    + "return text?text:null;"
+                    + "}"
+                    + "function findAvatar(owner){"
+                    + "var avatar=owner.querySelector?owner.querySelector(AVATAR_SELECTOR):null;"
+                    + "if(avatar){return avatar;}"
+                    + "var parent=owner.closest?owner.closest("
+                    + "'ytm-slim-owner-renderer,ytd-video-owner-renderer'):null;"
+                    + "return parent&&parent.querySelector?parent.querySelector(AVATAR_SELECTOR):null;"
+                    + "}"
+                    + "function applyBadge(owner){"
+                    + "var text=subscriberText(owner);"
+                    + "if(!text){return;}"
+                    + "var avatar=findAvatar(owner);"
+                    + "if(!avatar){return;}"
+                    + "var container=avatar.parentElement;"
+                    + "if(!container){return;}"
+                    + "var style=getComputedStyle(container);"
+                    + "if(style.position==='static'){container.style.position='relative';}"
+                    + "var badge=container.querySelector('.'+BADGE_CLASS);"
+                    + "if(!badge){"
+                    + "badge=document.createElement('span');"
+                    + "badge.className=BADGE_CLASS;"
+                    + "container.appendChild(badge);"
+                    + "}"
+                    + "if(badge.textContent!==text){badge.textContent=text;}"
+                    + "}"
+                    + "function scan(root){"
+                    + "var owners=(root&&root.querySelectorAll)?"
+                    + "root.querySelectorAll(OWNER_SELECTOR):[];"
+                    + "for(var i=0;i<owners.length;i++){applyBadge(owners[i]);}"
+                    + "if(root&&root.matches&&root.matches(OWNER_SELECTOR)){applyBadge(root);}"
+                    + "}"
+                    + "scan(document);"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){scan(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "var retries=0;"
+                    + "var retryTimer=setInterval(function(){"
+                    + "scan(document);"
+                    + "retries++;"
+                    + "if(retries>=15){clearInterval(retryTimer);}"
+                    + "},2000);"
+                    + "})()";
+
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private View settingsButton;
@@ -508,6 +587,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(SUBSCRIBER_BADGE_SCRIPT, null);
         }
 
         @Override
@@ -518,6 +598,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(SUBSCRIBER_BADGE_SCRIPT, null);
             CookieManager.getInstance().flush();
             swipeRefreshLayout.setRefreshing(false);
         }
