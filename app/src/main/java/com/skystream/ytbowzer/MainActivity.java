@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** Hides ad containers that are rendered inline by the page itself. */
     private static final String AD_HIDING_SCRIPT =
-            "javascript:(function(){"
+            "(function(){"
                     + "var id='ytbowzer-adblock';"
                     + "if(document.getElementById(id)){return;}"
                     + "var s=document.createElement('style');"
@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
      * that tell the player where the ads are, before it schedules them.
      */
     static final String AD_JSON_PRUNE_SCRIPT =
-            "javascript:(function(){"
+            "(function(){"
                     + "if(window.__ytbowzerJsonPruneInstalled){return;}"
                     + "window.__ytbowzerJsonPruneInstalled=true;"
                     + "var AD_KEYS=['playerAds','adPlacements','adSlots','adBreakHeartbeatParams',"
@@ -121,6 +121,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setSupportZoom(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+        }
 
         // Persist the session cookies so the user only has to sign in once.
         CookieManager cookieManager = CookieManager.getInstance();
@@ -218,15 +222,15 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
-            view.loadUrl(AD_JSON_PRUNE_SCRIPT);
-            view.loadUrl(AD_HIDING_SCRIPT);
+            view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
+            view.evaluateJavascript(AD_HIDING_SCRIPT, null);
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            view.loadUrl(AD_JSON_PRUNE_SCRIPT);
-            view.loadUrl(AD_HIDING_SCRIPT);
+            view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
+            view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 

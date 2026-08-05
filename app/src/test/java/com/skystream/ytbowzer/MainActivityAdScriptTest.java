@@ -13,7 +13,7 @@ public class MainActivityAdScriptTest {
     @Test
     public void prunesKnownAdSignalingKeys() {
         String script = MainActivity.AD_JSON_PRUNE_SCRIPT;
-        assertTrue(script.startsWith("javascript:"));
+        assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("'playerAds'"));
         assertTrue(script.contains("'adPlacements'"));
         assertTrue(script.contains("'adSlots'"));
