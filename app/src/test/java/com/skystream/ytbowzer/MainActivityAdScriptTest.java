@@ -42,4 +42,13 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
     }
+
+    @Test
+    public void removesPlayablesSections() {
+        String script = MainActivity.PLAYABLES_CLEANUP_SCRIPT;
+        assertTrue(script.contains("PlayablesCleanupInstalled"));
+        assertTrue(script.contains("playables?"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("addedNodes"));
+    }
 }

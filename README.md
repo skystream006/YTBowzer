@@ -21,6 +21,8 @@ keeps you signed in, and blocks advertising/tracking requests.
   and answered with an empty response (`AdBlocker`), and a stylesheet is injected on every
   page load to hide inline promoted/ad renderers. Shopping "Buy Now" buttons are removed
   as they appear.
+- **No Playables** – the "Playables" shelves and navigation entries are removed from pages
+  as they appear.
 
 ## Project layout
 
