@@ -17,10 +17,12 @@ import android.webkit.WebViewClient;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.ByteArrayInputStream;
 
@@ -204,6 +206,7 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     private WebView webView;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private View settingsButton;
     private SharedPreferences prefs;
     private boolean desktopMode;
@@ -222,11 +225,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webview);
+        swipeRefreshLayout = findViewById(R.id.swipe_refresh);
         settingsButton = findViewById(R.id.settings_button);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showPreferences();
+            }
+        });
+
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                webView.reload();
             }
         });
 
@@ -248,6 +259,15 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
         }
+
+        // Only allow the swipe gesture to trigger a refresh when the page is scrolled
+        // to the top; otherwise it would conflict with scrolling through the feed.
+        webView.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener() {
+            @Override
+            public void onScrollChanged() {
+                swipeRefreshLayout.setEnabled(webView.getScrollY() == 0);
+            }
+        });
 
         // Persist the session cookies so the user only has to sign in once.
         CookieManager cookieManager = CookieManager.getInstance();
@@ -499,6 +519,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
             CookieManager.getInstance().flush();
+            swipeRefreshLayout.setRefreshing(false);
         }
 
         private WebResourceResponse emptyResponse() {
