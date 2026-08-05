@@ -6,8 +6,10 @@ keeps you signed in, and blocks advertising/tracking requests.
 ## Features
 
 - **YouTube mobile only** – loads `https://m.youtube.com/` with a mobile user agent.
-  Links to other sites open in the system browser instead of inside the app
-  (`SiteScope`), while YouTube and the Google sign-in domains stay in-app.
+  Links to other sites are blocked from opening outside the app (`SiteScope`), while
+  YouTube and the Google sign-in domains stay in-app.
+- **YouTube link handling** – the app can be selected as the default handler for
+  YouTube web links and opens incoming YouTube links directly in the WebView.
 - **Persistent sign-in** – cookies are accepted (including third-party cookies needed by
   the Google account flow) and flushed to disk on pause, and DOM storage is enabled, so
   the session survives app restarts.
@@ -17,7 +19,8 @@ keeps you signed in, and blocks advertising/tracking requests.
   browser's "desktop site" toggle.
 - **Ad blocking** – requests to known ad/tracking hosts and ad endpoints are intercepted
   and answered with an empty response (`AdBlocker`), and a stylesheet is injected on every
-  page load to hide inline promoted/ad renderers.
+  page load to hide inline promoted/ad renderers. Shopping "Buy Now" buttons are removed
+  as they appear.
 
 ## Project layout
 
