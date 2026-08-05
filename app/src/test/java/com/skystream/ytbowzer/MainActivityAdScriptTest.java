@@ -63,4 +63,16 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
     }
+
+    @Test
+    public void setsVideoPosterFromPlayerThumbnail() {
+        String script = MainActivity.VIDEO_THUMBNAIL_POSTER_SCRIPT;
+        assertTrue(script.contains("ytInitialPlayerResponse"));
+        assertTrue(script.contains("videoDetails"));
+        assertTrue(script.contains("thumbnail.thumbnails"));
+        assertTrue(script.contains("querySelectorAll('video')"));
+        assertTrue(script.contains("setAttribute('poster',thumbnail)"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("setInterval"));
+    }
 }
