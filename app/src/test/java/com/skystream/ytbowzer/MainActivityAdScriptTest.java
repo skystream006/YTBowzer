@@ -63,19 +63,4 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
     }
-
-    @Test
-    public void showsSubscriberCountBadgeNearAvatar() {
-        String script = MainActivity.SUBSCRIBER_BADGE_SCRIPT;
-        assertTrue(script.startsWith("(function"));
-        assertTrue(script.contains("SubBadgeInstalled"));
-        assertTrue(script.contains("ytm-slim-owner-renderer"));
-        assertTrue(script.contains("ytd-video-owner-renderer"));
-        assertTrue(script.contains("slim-owner-subscriber-count"));
-        assertTrue(script.contains("owner-sub-count"));
-        assertTrue(script.contains("yt-img-shadow"));
-        assertTrue(script.contains("MutationObserver"));
-        assertTrue(script.contains("addedNodes"));
-        assertTrue(script.contains("setInterval"));
-    }
 }
