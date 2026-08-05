@@ -207,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private ViewGroup rootContainer;
     private View settingsButton;
     private SharedPreferences prefs;
     private boolean desktopMode;
@@ -226,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webview);
         swipeRefreshLayout = findViewById(R.id.swipe_refresh);
+        rootContainer = findViewById(R.id.root_container);
         settingsButton = findViewById(R.id.settings_button);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -265,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
         webView.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener() {
             @Override
             public void onScrollChanged() {
-                swipeRefreshLayout.setEnabled(webView.getScrollY() == 0);
+                updateSwipeRefreshEnabled();
             }
         });
 
@@ -350,8 +352,9 @@ public class MainActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        ((ViewGroup) webView.getParent()).addView(view, new ViewGroup.LayoutParams(
+        rootContainer.addView(view, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        swipeRefreshLayout.setEnabled(false);
         webView.setVisibility(View.GONE);
         settingsButton.setVisibility(View.GONE);
     }
@@ -364,11 +367,16 @@ public class MainActivity extends AppCompatActivity {
         fullscreenView = null;
         getWindow().getDecorView().setSystemUiVisibility(originalSystemUiVisibility);
         webView.setVisibility(View.VISIBLE);
+        updateSwipeRefreshEnabled();
         updateSettingsButton(webView.getUrl());
         if (fullscreenViewCallback != null) {
             fullscreenViewCallback.onCustomViewHidden();
             fullscreenViewCallback = null;
         }
+    }
+
+    private void updateSwipeRefreshEnabled() {
+        swipeRefreshLayout.setEnabled(fullscreenView == null && webView.getScrollY() == 0);
     }
 
     private void applyTheme(int theme) {
