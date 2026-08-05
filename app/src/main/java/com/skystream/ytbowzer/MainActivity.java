@@ -205,6 +205,48 @@ public class MainActivity extends AppCompatActivity {
                     + "}).observe(document.documentElement,{childList:true,subtree:true});"
                     + "})()";
 
+    /** Uses YouTube's current video thumbnail as the HTML video poster while video loads. */
+    static final String VIDEO_THUMBNAIL_POSTER_SCRIPT =
+            "(function(){"
+                    + "function bestThumbnail(thumbnails){"
+                    + "if(!thumbnails||!thumbnails.length){return null;}"
+                    + "var best=thumbnails[0];"
+                    + "for(var i=1;i<thumbnails.length;i++){"
+                    + "var candidate=thumbnails[i];"
+                    + "if((candidate.width||0)>=(best.width||0)){best=candidate;}"
+                    + "}"
+                    + "return best&&best.url;"
+                    + "}"
+                    + "function currentThumbnail(){"
+                    + "var response=window.ytInitialPlayerResponse||{};"
+                    + "var details=response.videoDetails||{};"
+                    + "var thumbnail=details.thumbnail&&details.thumbnail.thumbnails;"
+                    + "return bestThumbnail(thumbnail);"
+                    + "}"
+                    + "function asArray(list){return Array.prototype.slice.call(list);}"
+                    + "function syncVideoPosters(root){"
+                    + "var thumbnail=currentThumbnail();"
+                    + "if(!thumbnail){return;}"
+                    + "var videos=(root&&root.querySelectorAll)?asArray(root.querySelectorAll('video')):[];"
+                    + "if(root&&root.tagName&&root.tagName.toLowerCase()==='video'){videos.push(root);}"
+                    + "for(var i=0;i<videos.length;i++){"
+                    + "videos[i].setAttribute('poster',thumbnail);"
+                    + "}"
+                    + "}"
+                    + "syncVideoPosters(document);"
+                    + "if(window.__ytbowzerVideoThumbnailPosterInstalled){return;}"
+                    + "window.__ytbowzerVideoThumbnailPosterInstalled=true;"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){syncVideoPosters(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "setInterval(function(){syncVideoPosters(document);},1000);"
+                    + "})()";
+
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ViewGroup rootContainer;
@@ -516,6 +558,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
         }
 
         @Override
@@ -526,6 +569,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             CookieManager.getInstance().flush();
             swipeRefreshLayout.setRefreshing(false);
         }
