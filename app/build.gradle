@@ -10,8 +10,8 @@ android {
         applicationId "com.skystream.ytbowzer"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "0.01.01"
+        versionCode 2
+        versionName "0.01.02"
     }
 
     buildTypes {
