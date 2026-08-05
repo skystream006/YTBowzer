@@ -12,6 +12,8 @@ public class AdBlockerTest {
         assertTrue(AdBlocker.isAd("https://pagead2.googlesyndication.com/pagead/js/ads.js"));
         assertTrue(AdBlocker.isAd("https://static.doubleclick.net/instream/ad_status.js"));
         assertTrue(AdBlocker.isAd("https://www.google-analytics.com/collect"));
+        assertTrue(AdBlocker.isAd("https://securepubads.g.doubleclick.net/tag/js/gpt.js"));
+        assertTrue(AdBlocker.isAd("https://ib.adnxs.com/getuid"));
     }
 
     @Test
@@ -19,6 +21,13 @@ public class AdBlockerTest {
         assertTrue(AdBlocker.isAd("https://m.youtube.com/pagead/interaction/"));
         assertTrue(AdBlocker.isAd("https://m.youtube.com/api/stats/ads?foo=1"));
         assertTrue(AdBlocker.isAd("https://m.youtube.com/ptracking?video_id=1"));
+        assertTrue(AdBlocker.isAd("https://m.youtube.com/youtubei/v1/ads?key=abc"));
+    }
+
+    @Test
+    public void blocksKnownAdQueryParameters() {
+        assertTrue(AdBlocker.isAd("https://m.youtube.com/watch?v=abc&ad_format=preroll"));
+        assertTrue(AdBlocker.isAd("https://example.com/request?google_ad_client=ca-pub-123"));
     }
 
     @Test
@@ -27,6 +36,7 @@ public class AdBlockerTest {
         assertFalse(AdBlocker.isAd("https://m.youtube.com/watch?v=abc"));
         assertFalse(AdBlocker.isAd("https://i.ytimg.com/vi/abc/hq.jpg"));
         assertFalse(AdBlocker.isAd("https://accounts.google.com/ServiceLogin"));
+        assertFalse(AdBlocker.isAd("https://m.youtube.com/watch?ad_formats=available"));
     }
 
     @Test
