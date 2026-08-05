@@ -46,9 +46,13 @@ public class MainActivity extends AppCompatActivity {
                     + "ytm-search-ad-renderer,"
                     + "ytm-banner-promo-renderer,"
                     + "ytm-statement-banner-renderer,"
+                    + "ytm-ad-slot-renderer,"
+                    + "ytm-promoted-sparkles-text-search-renderer,"
                     + ".ad-showing .video-ads,"
                     + ".ytp-ad-module,"
-                    + ".ytp-ad-overlay-container{display:none !important;}';"
+                    + ".ytp-ad-overlay-container,"
+                    + ".ytp-ad-text,"
+                    + ".ytp-ad-player-overlay{display:none !important;}';"
                     + "(document.head||document.documentElement).appendChild(s);"
                     + "})()";
 

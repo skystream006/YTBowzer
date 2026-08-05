@@ -12,7 +12,10 @@ public final class AdBlocker {
 
     private static final List<String> BLOCKED_HOSTS = Arrays.asList(
             "doubleclick.net",
+            "adnxs.com",
+            "adsrvr.org",
             "googleadservices.com",
+            "googleads.g.doubleclick.net",
             "googlesyndication.com",
             "google-analytics.com",
             "googletagservices.com",
@@ -20,18 +23,33 @@ public final class AdBlocker {
             "adservice.google.com",
             "pagead2.googlesyndication.com",
             "static.doubleclick.net",
+            "tpc.googlesyndication.com",
             "ads.youtube.com"
     );
 
     private static final List<String> BLOCKED_PATHS = Arrays.asList(
             "/pagead/",
+            "/ads/",
             "/ptracking",
             "/api/stats/ads",
+            "/api/stats/qoe",
+            "/api/stats/watchtime",
+            "/api/stats/playback",
             "/get_midroll_",
             "/pcs/activeview",
             "/generate_ad",
             "/ad_companion",
-            "/log_event?"
+            "/log_event?",
+            "/youtubei/v1/ads"
+    );
+
+    private static final List<String> BLOCKED_QUERY_PARAMETERS = Arrays.asList(
+            "ad_format",
+            "ad_type",
+            "ad_slot",
+            "adurl",
+            "google_ad_client",
+            "google_ad_slot"
     );
 
     private AdBlocker() {
@@ -61,6 +79,24 @@ public final class AdBlocker {
 
         for (String path : BLOCKED_PATHS) {
             if (lower.contains(path)) {
+                return true;
+            }
+        }
+        return hasBlockedQueryParameter(lower);
+    }
+
+    private static boolean hasBlockedQueryParameter(String lowerUrl) {
+        int queryStart = lowerUrl.indexOf('?');
+        if (queryStart < 0) {
+            return false;
+        }
+        int fragmentStart = lowerUrl.indexOf('#', queryStart);
+        String query = lowerUrl.substring(queryStart + 1,
+                fragmentStart < 0 ? lowerUrl.length() : fragmentStart);
+        for (String parameter : query.split("&")) {
+            int separator = parameter.indexOf('=');
+            String name = separator < 0 ? parameter : parameter.substring(0, separator);
+            if (BLOCKED_QUERY_PARAMETERS.contains(name)) {
                 return true;
             }
         }
