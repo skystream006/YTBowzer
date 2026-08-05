@@ -111,7 +111,10 @@ public class MainActivity extends AppCompatActivity {
                     + "prune(window.ytInitialData,0);"
                     + "})()";
 
-    /** Removes shopping call-to-action buttons that can be added after page load. */
+    /**
+     * Removes shopping call-to-action buttons (e.g. "Buy now", "Shop now", "Visit site")
+     * that can be added after page load.
+     */
     static final String BUY_NOW_CLEANUP_SCRIPT =
             "(function(){"
                     + "if(window.__ytbowzerBuyNowCleanupInstalled){return;}"
@@ -126,7 +129,8 @@ public class MainActivity extends AppCompatActivity {
                     + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
                     + "for(var i=0;i<nodes.length;i++){"
                     + "var el=nodes[i];"
-                    + "if(/\\bbuy\\s+(it\\s+)?now\\b/.test(textOf(el))){"
+                    + "if(/\\bbuy\\s+(it\\s+)?now\\b|\\bshop\\s+now\\b|\\bvisit\\s+site\\b/"
+                    + ".test(textOf(el))){"
                     + "var target=el.closest('ytm-product-card-renderer,ytm-shopping-offer-renderer,"
                     + "ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,"
                     + "ytd-product-card-renderer,ytd-shopping-offer-renderer')||el;"
