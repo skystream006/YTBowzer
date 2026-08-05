@@ -39,6 +39,8 @@ public class MainActivityAdScriptTest {
         String script = MainActivity.BUY_NOW_CLEANUP_SCRIPT;
         assertTrue(script.contains("BuyNowCleanupInstalled"));
         assertTrue(script.contains("buy\\s+(it\\s+)?now"));
+        assertTrue(script.contains("shop\\s+now"));
+        assertTrue(script.contains("visit\\s+site"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
         assertTrue(script.contains("characterData:true"));
