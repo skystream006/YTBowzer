@@ -19,7 +19,7 @@ keeps you signed in, and blocks advertising/tracking requests.
   browser's "desktop site" toggle.
 - **Ad blocking** – requests to known ad/tracking hosts and ad endpoints are intercepted
   and answered with an empty response (`AdBlocker`), and a stylesheet is injected on every
-  page load to hide inline promoted/ad renderers. Shopping "Buy Now" buttons are removed
+  page load to hide inline promoted/ad renderers. Shopping and "Buy Now" call-to-action elements are hidden by CSS and removed
   as they appear.
 
 ## Project layout

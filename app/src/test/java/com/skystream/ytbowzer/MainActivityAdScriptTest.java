@@ -38,8 +38,18 @@ public class MainActivityAdScriptTest {
     public void removesBuyNowButtonsAsynchronously() {
         String script = MainActivity.BUY_NOW_CLEANUP_SCRIPT;
         assertTrue(script.contains("BuyNowCleanupInstalled"));
-        assertTrue(script.contains("buy\\s+now"));
+        assertTrue(script.contains("buy\\s+(it\\s+)?now"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
+        assertTrue(script.contains("characterData:true"));
+        assertTrue(script.contains("setInterval"));
+    }
+
+    @Test
+    public void hidesShoppingRenderersWithCss() {
+        String script = MainActivity.AD_HIDING_SCRIPT;
+        assertTrue(script.contains("ytm-product-card-renderer"));
+        assertTrue(script.contains("ytm-shopping-offer-renderer"));
+        assertTrue(script.contains("ytd-merch-shelf-renderer"));
     }
 }
