@@ -152,6 +152,51 @@ public class MainActivity extends AppCompatActivity {
                     + "setInterval(function(){removeBuyNow(document);},2000);"
                     + "})()";
 
+    /** Removes the "Playables" shelves and navigation entries from YouTube pages. */
+    static final String PLAYABLES_CLEANUP_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerPlayablesCleanupInstalled){return;}"
+                    + "window.__ytbowzerPlayablesCleanupInstalled=true;"
+                    + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
+                    + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
+                    + "ytd-rich-section-renderer,ytd-shelf-renderer,"
+                    + "ytm-pivot-bar-item-renderer,ytd-guide-entry-renderer,"
+                    + "ytd-mini-guide-entry-renderer,a[href*=\"playables\"]';"
+                    + "function textOf(el){return ((el.innerText||el.textContent||'')+' '+"
+                    + "(el.getAttribute&&el.getAttribute('aria-label')||'')+' '+"
+                    + "(el.getAttribute&&el.getAttribute('title')||''))"
+                    + ".replace(/\\s+/g,' ').trim().toLowerCase();}"
+                    + "function asArray(list){return Array.prototype.slice.call(list);}"
+                    + "function isPlayables(el){"
+                    + "var href=el.getAttribute&&el.getAttribute('href')||'';"
+                    + "if(href.indexOf('playables')!==-1){return true;}"
+                    + "return /\\bplayables?\\b/.test(textOf(el));"
+                    + "}"
+                    + "function removePlayables(root){"
+                    + "var nodes=(root&&root.querySelectorAll)?asArray(root.querySelectorAll(selector)):[];"
+                    + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
+                    + "for(var i=0;i<nodes.length;i++){"
+                    + "var el=nodes[i];"
+                    + "if(!isPlayables(el)){continue;}"
+                    + "var target=el.closest('ytm-rich-section-renderer,ytm-shelf-renderer,"
+                    + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
+                    + "ytd-rich-section-renderer,ytd-shelf-renderer,"
+                    + "ytm-pivot-bar-item-renderer,ytd-guide-entry-renderer,"
+                    + "ytd-mini-guide-entry-renderer')||el;"
+                    + "target.remove();"
+                    + "}"
+                    + "}"
+                    + "removePlayables(document);"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){removePlayables(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "})()";
+
     private WebView webView;
     private View settingsButton;
     private SharedPreferences prefs;
@@ -382,6 +427,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
         }
 
         @Override
@@ -391,6 +437,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 

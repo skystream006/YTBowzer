@@ -52,4 +52,13 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("ytm-shopping-offer-renderer"));
         assertTrue(script.contains("ytd-merch-shelf-renderer"));
     }
+
+    @Test
+    public void removesPlayablesSections() {
+        String script = MainActivity.PLAYABLES_CLEANUP_SCRIPT;
+        assertTrue(script.contains("PlayablesCleanupInstalled"));
+        assertTrue(script.contains("playables?"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("addedNodes"));
+    }
 }
