@@ -48,8 +48,6 @@ public class MainActivity extends AppCompatActivity {
                     + "ytm-statement-banner-renderer,"
                     + "ytm-ad-slot-renderer,"
                     + "ytm-promoted-sparkles-text-search-renderer,"
-                    + "ytm-rich-item-renderer:has(ytm-ad-slot-renderer),"
-                    + "ytm-rich-item-renderer:has(ytm-promoted-video-renderer),"
                     + ".ad-showing .video-ads,"
                     + ".ytp-ad-module,"
                     + ".ytp-ad-overlay-container,"
