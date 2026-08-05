@@ -16,6 +16,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -207,6 +208,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void showPreferences() {
         View content = getLayoutInflater().inflate(R.layout.dialog_preferences, null);
+        TextView versionView = content.findViewById(R.id.app_version);
+        versionView.setText(getString(R.string.app_version_format, BuildConfig.VERSION_NAME));
         RadioGroup themeGroup = content.findViewById(R.id.theme_group);
         RadioGroup siteModeGroup = content.findViewById(R.id.site_mode_group);
 
