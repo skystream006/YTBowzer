@@ -26,6 +26,7 @@ keeps you signed in, and blocks advertising/tracking requests.
   as they appear.
 - **No Playables** – the "Playables" shelves and navigation entries are removed from pages
   as they appear.
+- **No Posts shelf** – the "Posts" section is removed from the home page as it appears.
 
 ## Project layout
 

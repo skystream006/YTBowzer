@@ -65,6 +65,15 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void removesPostsSections() {
+        String script = MainActivity.POSTS_CLEANUP_SCRIPT;
+        assertTrue(script.contains("PostsCleanupInstalled"));
+        assertTrue(script.contains("==='posts'"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("addedNodes"));
+    }
+
+    @Test
     public void setsVideoPosterFromPlayerThumbnail() {
         String script = MainActivity.VIDEO_THUMBNAIL_POSTER_SCRIPT;
         assertTrue(script.contains("ytInitialPlayerResponse"));
