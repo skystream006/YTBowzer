@@ -383,7 +383,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.loadUrl(startUrl(getIntent()));
         }
-        updateNavigationButtons();
     }
 
     @Override
