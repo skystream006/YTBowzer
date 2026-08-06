@@ -17,12 +17,10 @@ import android.webkit.WebViewClient;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.ByteArrayInputStream;
 
@@ -279,9 +277,11 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     private WebView webView;
-    private SwipeRefreshLayout swipeRefreshLayout;
     private ViewGroup rootContainer;
     private View settingsButton;
+    private View navigationBar;
+    private View backButton;
+    private View forwardButton;
     private SharedPreferences prefs;
     private boolean desktopMode;
     private View fullscreenView;
@@ -299,20 +299,43 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webview);
-        swipeRefreshLayout = findViewById(R.id.swipe_refresh);
         rootContainer = findViewById(R.id.root_container);
         settingsButton = findViewById(R.id.settings_button);
+        navigationBar = findViewById(R.id.navigation_bar);
+        backButton = findViewById(R.id.back_button);
+        forwardButton = findViewById(R.id.forward_button);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showPreferences();
             }
         });
-
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        backButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onRefresh() {
+            public void onClick(View v) {
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                }
+            }
+        });
+        forwardButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (webView.canGoForward()) {
+                    webView.goForward();
+                }
+            }
+        });
+        findViewById(R.id.refresh_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 webView.reload();
+            }
+        });
+        findViewById(R.id.home_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                webView.loadUrl(Preferences.homeUrl(desktopMode));
             }
         });
 
@@ -334,15 +357,6 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
         }
-
-        // Only allow the swipe gesture to trigger a refresh when the page is scrolled
-        // to the top; otherwise it would conflict with scrolling through the feed.
-        webView.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener() {
-            @Override
-            public void onScrollChanged() {
-                updateSwipeRefreshEnabled();
-            }
-        });
 
         // Persist the session cookies so the user only has to sign in once.
         CookieManager cookieManager = CookieManager.getInstance();
@@ -369,6 +383,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.loadUrl(startUrl(getIntent()));
         }
+        updateNavigationButtons();
     }
 
     @Override
@@ -427,8 +442,8 @@ public class MainActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         rootContainer.addView(view, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        swipeRefreshLayout.setEnabled(false);
         webView.setVisibility(View.GONE);
+        navigationBar.setVisibility(View.GONE);
         settingsButton.setVisibility(View.GONE);
     }
 
@@ -440,7 +455,8 @@ public class MainActivity extends AppCompatActivity {
         fullscreenView = null;
         getWindow().getDecorView().setSystemUiVisibility(originalSystemUiVisibility);
         webView.setVisibility(View.VISIBLE);
-        updateSwipeRefreshEnabled();
+        navigationBar.setVisibility(View.VISIBLE);
+        updateNavigationButtons();
         updateSettingsButton(webView.getUrl());
         if (fullscreenViewCallback != null) {
             fullscreenViewCallback.onCustomViewHidden();
@@ -448,8 +464,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateSwipeRefreshEnabled() {
-        swipeRefreshLayout.setEnabled(fullscreenView == null && webView.getScrollY() == 0);
+    private void updateNavigationButtons() {
+        backButton.setEnabled(webView.canGoBack());
+        forwardButton.setEnabled(webView.canGoForward());
     }
 
     private void applyTheme(int theme) {
@@ -585,6 +602,7 @@ public class MainActivity extends AppCompatActivity {
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
             updateSettingsButton(url);
+            updateNavigationButtons();
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
@@ -596,13 +614,13 @@ public class MainActivity extends AppCompatActivity {
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             updateSettingsButton(url);
+            updateNavigationButtons();
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             CookieManager.getInstance().flush();
-            swipeRefreshLayout.setRefreshing(false);
         }
 
         private WebResourceResponse emptyResponse() {
