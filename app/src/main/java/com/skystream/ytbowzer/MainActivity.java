@@ -207,6 +207,38 @@ public class MainActivity extends AppCompatActivity {
                     + "}).observe(document.documentElement,{childList:true,subtree:true});"
                     + "})()";
 
+    /** Removes the "Posts" shelf from the YouTube home page as it appears. */
+    static final String POSTS_CLEANUP_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerPostsCleanupInstalled){return;}"
+                    + "window.__ytbowzerPostsCleanupInstalled=true;"
+                    + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
+                    + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
+                    + "ytd-rich-section-renderer,ytd-shelf-renderer';"
+                    + "function textOf(el){return (el.innerText||el.textContent||'')"
+                    + ".replace(/\\s+/g,' ').trim().toLowerCase();}"
+                    + "function asArray(list){return Array.prototype.slice.call(list);}"
+                    + "function isPosts(el){"
+                    + "var headings=asArray(el.querySelectorAll('h1,h2,h3,h4,yt-formatted-string'));"
+                    + "for(var i=0;i<headings.length;i++){if(textOf(headings[i])==='posts'){return true;}}"
+                    + "return false;"
+                    + "}"
+                    + "function removePosts(root){"
+                    + "var nodes=(root&&root.querySelectorAll)?asArray(root.querySelectorAll(selector)):[];"
+                    + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
+                    + "for(var i=0;i<nodes.length;i++){if(isPosts(nodes[i])){nodes[i].remove();}}"
+                    + "}"
+                    + "removePosts(document);"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){removePosts(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "})()";
+
     /** Uses YouTube's current video thumbnail as the HTML video poster while video loads. */
     static final String VIDEO_THUMBNAIL_POSTER_SCRIPT =
             "(function(){"
@@ -639,6 +671,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
         }
 
@@ -650,6 +683,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
+            view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
