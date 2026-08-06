@@ -324,7 +324,8 @@ public class MainActivity extends AppCompatActivity {
                     + "if(!link){return null;}"
                     + "var url;"
                     + "try{url=new URL(link.href,location.origin);}catch(e){return null;}"
-                    + "if(url.origin!==location.origin||!/^\\/(?:@|channel\\/|c\\/|user\\/)/.test(url.pathname)){"
+                    + "if(url.origin!==location.origin||!/^\\/@[\\w.-]+$|^\\/channel\\/UC[\\w-]+$|"
+                    + "^\\/c\\/[\\w.-]+$|^\\/user\\/[\\w.-]+$/.test(url.pathname)){"
                     + "return null;"
                     + "}"
                     + "return url.origin+url.pathname;"
@@ -382,7 +383,6 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "}"
                     + "}).observe(document.documentElement,{childList:true,subtree:true});"
-                    + "setInterval(function(){sync(document);},2000);"
                     + "})()";
 
     private WebView webView;
