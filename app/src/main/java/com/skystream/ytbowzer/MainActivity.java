@@ -1,6 +1,7 @@
 package com.skystream.ytbowzer;
 
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -8,6 +9,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
@@ -396,7 +398,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private ViewGroup rootContainer;
-    private View settingsButton;
+    private ImageButton settingsButton;
     private SharedPreferences prefs;
     private boolean desktopMode;
     private View fullscreenView;
@@ -593,6 +595,30 @@ public class MainActivity extends AppCompatActivity {
         settingsButton.setVisibility(Preferences.isHomePage(url) ? View.VISIBLE : View.GONE);
     }
 
+    private void openPreferencePanel(AlertDialog dialog) {
+        settingsButton.setImageResource(R.drawable.ic_close);
+        settingsButton.setContentDescription(getString(R.string.close));
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+    }
+
+    private void closePreferencePanel() {
+        settingsButton.animate().translationY(0f).setDuration(
+                getResources().getInteger(android.R.integer.config_shortAnimTime));
+        settingsButton.setImageResource(R.drawable.ic_settings);
+        settingsButton.setContentDescription(getString(R.string.settings));
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPreferences();
+            }
+        });
+    }
+
     private void showPreferences() {
         View content = getLayoutInflater().inflate(R.layout.dialog_preferences, null);
         TextView versionView = content.findViewById(R.id.app_version);
@@ -697,7 +723,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                closePreferencePanel();
+            }
+        });
+
+        openPreferencePanel(dialog);
         dialog.show();
+
+        content.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        content.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        settingsButton.animate().translationY(-content.getHeight()).setDuration(
+                                getResources().getInteger(android.R.integer.config_shortAnimTime));
+                    }
+                });
     }
 
     private String startUrl(Intent intent) {
