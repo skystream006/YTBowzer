@@ -88,4 +88,14 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("removeAttribute('poster')"));
         assertTrue(script.contains("details.videoId===videoId"));
     }
+
+    @Test
+    public void injectsSubscriberCountsBesideChannelAvatars() {
+        String script = MainActivity.SUBSCRIBER_COUNT_SCRIPT;
+        assertTrue(script.contains("subscriberCountText"));
+        assertTrue(script.contains("ytbowzer-subscriber-count"));
+        assertTrue(script.contains("insertAdjacentElement('afterend',badge)"));
+        assertTrue(script.contains("fetch(url,{credentials:'same-origin'})"));
+        assertTrue(script.contains("MutationObserver"));
+    }
 }

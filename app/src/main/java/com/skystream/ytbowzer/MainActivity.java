@@ -312,6 +312,77 @@ public class MainActivity extends AppCompatActivity {
                     + "setInterval(function(){syncVideoPosters(document);},1000);"
                     + "})()";
 
+    /** Adds each channel's subscriber count beside its avatar on video cards. */
+    static final String SUBSCRIBER_COUNT_SCRIPT =
+            "(function(){"
+                    + "var badgeClass='ytbowzer-subscriber-count';"
+                    + "var avatarSelector='ytm-channel-thumbnail-with-link-renderer,"
+                    + "ytm-channel-thumbnail-supported-renderer,ytm-channel-thumbnail-renderer,ytm-avatar';"
+                    + "var cache=window.__ytbowzerSubscriberCounts||(window.__ytbowzerSubscriberCounts={});"
+                    + "function channelUrl(avatar){"
+                    + "var link=avatar.querySelector('a[href]')||avatar.closest('a[href]');"
+                    + "if(!link){return null;}"
+                    + "var url;"
+                    + "try{url=new URL(link.href,location.origin);}catch(e){return null;}"
+                    + "if(url.origin!==location.origin||!/^\\/(?:@|channel\\/|c\\/|user\\/)/.test(url.pathname)){"
+                    + "return null;"
+                    + "}"
+                    + "return url.origin+url.pathname;"
+                    + "}"
+                    + "function subscriberCount(html){"
+                    + "var match=/\"subscriberCountText\"\\s*:\\s*\\{[\\s\\S]{0,500}?\"simpleText\"\\s*:"
+                    + "\\s*\"((?:\\\\.|[^\"])*)\"/.exec(html);"
+                    + "if(!match){return null;}"
+                    + "try{return JSON.parse('\"'+match[1]+'\"');}catch(e){return null;}"
+                    + "}"
+                    + "function addBadge(avatar,count){"
+                    + "var badge=avatar.nextElementSibling;"
+                    + "if(!badge||!badge.classList.contains(badgeClass)){badge=null;}"
+                    + "if(!badge){"
+                    + "badge=document.createElement('span');"
+                    + "badge.className=badgeClass;"
+                    + "badge.style.cssText='display:inline-block;margin-left:6px;vertical-align:middle;"
+                    + "font-size:12px;line-height:1.2;white-space:nowrap;';"
+                    + "avatar.insertAdjacentElement('afterend',badge);"
+                    + "}"
+                    + "badge.textContent=count;"
+                    + "}"
+                    + "function sync(root){"
+                    + "var avatars=(root&&root.querySelectorAll)?root.querySelectorAll(avatarSelector):[];"
+                    + "if(root&&root.matches&&root.matches(avatarSelector)){"
+                    + "avatars=Array.prototype.slice.call(avatars);"
+                    + "avatars.push(root);"
+                    + "}"
+                    + "for(var i=0;i<avatars.length;i++){(function(avatar){"
+                    + "var url=channelUrl(avatar);"
+                    + "if(!url){return;}"
+                    + "if(Object.prototype.hasOwnProperty.call(cache,url)){"
+                    + "if(cache[url]){addBadge(avatar,cache[url]);}"
+                    + "return;"
+                    + "}"
+                    + "cache[url]=null;"
+                    + "fetch(url,{credentials:'same-origin'}).then(function(response){return response.text();})"
+                    + ".then(function(html){"
+                    + "var count=subscriberCount(html);"
+                    + "cache[url]=count;"
+                    + "if(count){sync(document);}"
+                    + "}).catch(function(){});"
+                    + "})(avatars[i]);}"
+                    + "}"
+                    + "sync(document);"
+                    + "if(window.__ytbowzerSubscriberCountInstalled){return;}"
+                    + "window.__ytbowzerSubscriberCountInstalled=true;"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){sync(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "setInterval(function(){sync(document);},2000);"
+                    + "})()";
+
     private WebView webView;
     private ViewGroup rootContainer;
     private View settingsButton;
@@ -673,6 +744,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
+            view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
         }
 
         @Override
@@ -685,6 +757,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(PLAYABLES_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
+            view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 
