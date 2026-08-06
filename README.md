@@ -14,9 +14,12 @@ keeps you signed in, and blocks advertising/tracking requests.
   the Google account flow) and flushed to disk on pause, and DOM storage is enabled, so
   the session survives app restarts.
 - **Preferences** – a floating settings button appears on the YouTube home page (the page
-  with the bottom navigation bar). It opens a preferences dialog where the theme can be set
-  to system/light/dark and the site mode to mobile or desktop (`Preferences`), mirroring a
-  browser's "desktop site" toggle.
+  with the bottom navigation bar). It opens a preferences dialog with icon buttons for
+  back/forward/reload/home navigation, plus the theme (system/light/dark) and the site mode
+  (mobile or desktop, `Preferences`), mirroring a browser's "desktop site" toggle.
+  Back and forward behave like a browser's buttons: repeated history entries for the same
+  page (created by the YouTube single page app) are skipped so every press changes page
+  (`NavigationHistory`).
 - **Ad blocking** – requests to known ad/tracking hosts and ad endpoints are intercepted
   and answered with an empty response (`AdBlocker`), and a stylesheet is injected on every
   page load to hide inline promoted/ad renderers. Shopping and "Buy Now" call-to-action elements are hidden by CSS and removed
@@ -32,7 +35,8 @@ app/src/main/java/com/skystream/ytbowzer/
   AdBlocker.java      URL-based ad/tracker blocklist (pure Java, unit tested)
   SiteScope.java      Which URLs stay inside the app (pure Java, unit tested)
   Preferences.java    Theme/site-mode values, user agents, home URLs (pure Java, unit tested)
-app/src/test/java/... JUnit tests for AdBlocker and SiteScope
+  NavigationHistory.java  Browser-like back/forward step calculation (pure Java, unit tested)
+app/src/test/java/... JUnit tests for AdBlocker, SiteScope, Preferences and NavigationHistory
 ```
 
 ## Build and test

@@ -8,12 +8,14 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.WebBackForwardList;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.view.ViewGroup;
@@ -23,6 +25,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Hosts a single WebView that shows the YouTube mobile site, keeps the sign-in session
@@ -279,9 +283,6 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ViewGroup rootContainer;
     private View settingsButton;
-    private View navigationBar;
-    private View backButton;
-    private View forwardButton;
     private SharedPreferences prefs;
     private boolean desktopMode;
     private View fullscreenView;
@@ -301,41 +302,10 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webview);
         rootContainer = findViewById(R.id.root_container);
         settingsButton = findViewById(R.id.settings_button);
-        navigationBar = findViewById(R.id.navigation_bar);
-        backButton = findViewById(R.id.back_button);
-        forwardButton = findViewById(R.id.forward_button);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showPreferences();
-            }
-        });
-        backButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (webView.canGoBack()) {
-                    webView.goBack();
-                }
-            }
-        });
-        forwardButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (webView.canGoForward()) {
-                    webView.goForward();
-                }
-            }
-        });
-        findViewById(R.id.refresh_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                webView.reload();
-            }
-        });
-        findViewById(R.id.home_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                webView.loadUrl(Preferences.homeUrl(desktopMode));
             }
         });
 
@@ -417,8 +387,7 @@ public class MainActivity extends AppCompatActivity {
             hideFullscreenView();
             return true;
         }
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack();
+        if (keyCode == KeyEvent.KEYCODE_BACK && goBack()) {
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -442,7 +411,6 @@ public class MainActivity extends AppCompatActivity {
         rootContainer.addView(view, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         webView.setVisibility(View.GONE);
-        navigationBar.setVisibility(View.GONE);
         settingsButton.setVisibility(View.GONE);
     }
 
@@ -454,8 +422,6 @@ public class MainActivity extends AppCompatActivity {
         fullscreenView = null;
         getWindow().getDecorView().setSystemUiVisibility(originalSystemUiVisibility);
         webView.setVisibility(View.VISIBLE);
-        navigationBar.setVisibility(View.VISIBLE);
-        updateNavigationButtons();
         updateSettingsButton(webView.getUrl());
         if (fullscreenViewCallback != null) {
             fullscreenViewCallback.onCustomViewHidden();
@@ -463,9 +429,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateNavigationButtons() {
-        backButton.setEnabled(webView.canGoBack());
-        forwardButton.setEnabled(webView.canGoForward());
+    private boolean goBack() {
+        return navigate(backSteps());
+    }
+
+    private boolean goForward() {
+        return navigate(forwardSteps());
+    }
+
+    private int backSteps() {
+        WebBackForwardList history = webView.copyBackForwardList();
+        return NavigationHistory.backSteps(historyUrls(history), history.getCurrentIndex());
+    }
+
+    private int forwardSteps() {
+        WebBackForwardList history = webView.copyBackForwardList();
+        return NavigationHistory.forwardSteps(historyUrls(history), history.getCurrentIndex());
+    }
+
+    private boolean navigate(int steps) {
+        if (steps == 0 || !webView.canGoBackOrForward(steps)) {
+            return false;
+        }
+        webView.goBackOrForward(steps);
+        return true;
+    }
+
+    private List<String> historyUrls(WebBackForwardList history) {
+        List<String> urls = new ArrayList<>(history.getSize());
+        for (int i = 0; i < history.getSize(); i++) {
+            urls.add(history.getItemAtIndex(i).getUrl());
+        }
+        return urls;
     }
 
     private void applyTheme(int theme) {
@@ -537,11 +532,50 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        new AlertDialog.Builder(this)
+        final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.preferences)
                 .setView(content)
                 .setPositiveButton(R.string.close, null)
-                .show();
+                .create();
+
+        ImageButton backButton = content.findViewById(R.id.back_button);
+        ImageButton forwardButton = content.findViewById(R.id.forward_button);
+        backButton.setEnabled(backSteps() != 0);
+        forwardButton.setEnabled(forwardSteps() != 0);
+        backButton.setAlpha(backButton.isEnabled() ? 1f : 0.4f);
+        forwardButton.setAlpha(forwardButton.isEnabled() ? 1f : 0.4f);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (goBack()) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        forwardButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (goForward()) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        content.findViewById(R.id.refresh_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                webView.reload();
+                dialog.dismiss();
+            }
+        });
+        content.findViewById(R.id.home_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                webView.loadUrl(Preferences.homeUrl(desktopMode));
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
     }
 
     private String startUrl(Intent intent) {
@@ -601,7 +635,6 @@ public class MainActivity extends AppCompatActivity {
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
             updateSettingsButton(url);
-            updateNavigationButtons();
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
@@ -613,7 +646,6 @@ public class MainActivity extends AppCompatActivity {
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             updateSettingsButton(url);
-            updateNavigationButtons();
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
             view.evaluateJavascript(BUY_NOW_CLEANUP_SCRIPT, null);
