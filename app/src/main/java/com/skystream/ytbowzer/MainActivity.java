@@ -5,8 +5,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebBackForwardList;
 import android.webkit.WebChromeClient;
@@ -567,8 +570,16 @@ public class MainActivity extends AppCompatActivity {
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.preferences)
                 .setView(content)
-                .setPositiveButton(R.string.close, null)
                 .create();
+
+        Window dialogWindow = dialog.getWindow();
+        if (dialogWindow != null) {
+            dialogWindow.setBackgroundDrawableResource(R.drawable.bg_preference_panel);
+            dialogWindow.setGravity(Gravity.BOTTOM);
+            dialogWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT);
+            dialogWindow.setWindowAnimations(R.style.PreferencePanelAnimation);
+        }
 
         ImageButton backButton = content.findViewById(R.id.back_button);
         ImageButton forwardButton = content.findViewById(R.id.forward_button);
