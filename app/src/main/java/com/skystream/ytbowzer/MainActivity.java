@@ -608,9 +608,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void closePreferencePanel() {
         settingsButton.animate().translationY(0f).setDuration(
-                getResources().getInteger(android.R.integer.config_shortAnimTime));
-        settingsButton.setImageResource(R.drawable.ic_settings);
-        settingsButton.setContentDescription(getString(R.string.settings));
+                getResources().getInteger(android.R.integer.config_shortAnimTime))
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        settingsButton.setImageResource(R.drawable.ic_settings);
+                        settingsButton.setContentDescription(getString(R.string.settings));
+                    }
+                });
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -737,8 +742,12 @@ public class MainActivity extends AppCompatActivity {
                 new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
+                        int panelHeight = content.getHeight();
+                        if (panelHeight <= 0) {
+                            return;
+                        }
                         content.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                        settingsButton.animate().translationY(-content.getHeight()).setDuration(
+                        settingsButton.animate().translationY(-panelHeight).setDuration(
                                 getResources().getInteger(android.R.integer.config_shortAnimTime));
                     }
                 });
