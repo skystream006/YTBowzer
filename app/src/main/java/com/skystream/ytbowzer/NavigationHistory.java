@@ -26,6 +26,9 @@ public final class NavigationHistory {
         while (index > 0 && sameEntry(urls.get(index), current)) {
             index--;
         }
+        if (sameEntry(urls.get(index), current)) {
+            return 0;
+        }
         return index - currentIndex;
     }
 
@@ -42,6 +45,9 @@ public final class NavigationHistory {
         int index = currentIndex + 1;
         while (index < last && sameEntry(urls.get(index), current)) {
             index++;
+        }
+        if (sameEntry(urls.get(index), current)) {
+            return 0;
         }
         return index - currentIndex;
     }

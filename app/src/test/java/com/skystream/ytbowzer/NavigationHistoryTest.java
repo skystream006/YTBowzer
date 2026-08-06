@@ -35,17 +35,30 @@ public class NavigationHistoryTest {
                 "https://m.youtube.com/watch?v=1",
                 "https://m.youtube.com/watch?v=1");
         assertEquals(-3, NavigationHistory.backSteps(urls, 3));
-        assertEquals(2, NavigationHistory.forwardSteps(urls, 1));
+        assertEquals(1, NavigationHistory.forwardSteps(urls, 0));
+        assertEquals(0, NavigationHistory.forwardSteps(urls, 1));
     }
 
     @Test
     public void trailingSlashAndFragmentAreIgnored() {
         List<String> urls = Arrays.asList(
+                "https://m.youtube.com/watch?v=1",
+                "https://m.youtube.com/",
+                "https://m.youtube.com",
+                "https://m.youtube.com/#fragment",
+                "https://m.youtube.com/watch?v=2");
+        assertEquals(-3, NavigationHistory.backSteps(urls, 3));
+        assertEquals(3, NavigationHistory.forwardSteps(urls, 1));
+    }
+
+    @Test
+    public void historyOfOnlyTheCurrentPageHasNoTarget() {
+        List<String> urls = Arrays.asList(
                 "https://m.youtube.com/",
                 "https://m.youtube.com",
                 "https://m.youtube.com/#fragment");
-        assertEquals(-2, NavigationHistory.backSteps(urls, 2));
-        assertEquals(2, NavigationHistory.forwardSteps(urls, 0));
+        assertEquals(0, NavigationHistory.backSteps(urls, 2));
+        assertEquals(0, NavigationHistory.forwardSteps(urls, 0));
     }
 
     @Test

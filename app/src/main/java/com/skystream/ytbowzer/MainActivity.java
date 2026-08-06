@@ -430,11 +430,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean goBack() {
-        return navigate(NavigationHistory.backSteps(historyUrls(), currentHistoryIndex()));
+        return navigate(backSteps());
     }
 
     private boolean goForward() {
-        return navigate(NavigationHistory.forwardSteps(historyUrls(), currentHistoryIndex()));
+        return navigate(forwardSteps());
+    }
+
+    private int backSteps() {
+        WebBackForwardList history = webView.copyBackForwardList();
+        return NavigationHistory.backSteps(historyUrls(history), history.getCurrentIndex());
+    }
+
+    private int forwardSteps() {
+        WebBackForwardList history = webView.copyBackForwardList();
+        return NavigationHistory.forwardSteps(historyUrls(history), history.getCurrentIndex());
     }
 
     private boolean navigate(int steps) {
@@ -445,17 +455,12 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private List<String> historyUrls() {
-        WebBackForwardList history = webView.copyBackForwardList();
+    private List<String> historyUrls(WebBackForwardList history) {
         List<String> urls = new ArrayList<>(history.getSize());
         for (int i = 0; i < history.getSize(); i++) {
             urls.add(history.getItemAtIndex(i).getUrl());
         }
         return urls;
-    }
-
-    private int currentHistoryIndex() {
-        return webView.copyBackForwardList().getCurrentIndex();
     }
 
     private void applyTheme(int theme) {
@@ -535,8 +540,8 @@ public class MainActivity extends AppCompatActivity {
 
         ImageButton backButton = content.findViewById(R.id.back_button);
         ImageButton forwardButton = content.findViewById(R.id.forward_button);
-        backButton.setEnabled(webView.canGoBack());
-        forwardButton.setEnabled(webView.canGoForward());
+        backButton.setEnabled(backSteps() != 0);
+        forwardButton.setEnabled(forwardSteps() != 0);
         backButton.setAlpha(backButton.isEnabled() ? 1f : 0.4f);
         forwardButton.setAlpha(forwardButton.isEnabled() ? 1f : 0.4f);
         backButton.setOnClickListener(new View.OnClickListener() {
