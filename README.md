@@ -27,6 +27,8 @@ keeps you signed in, and blocks advertising/tracking requests.
 - **No Playables** – the "Playables" shelves and navigation entries are removed from pages
   as they appear.
 - **No Posts shelf** – the "Posts" section is removed from the home page as it appears.
+- **Subscriber counts** – a page injection loads each video card channel's public subscriber
+  count and displays it beside the channel avatar.
 
 ## Project layout
 
