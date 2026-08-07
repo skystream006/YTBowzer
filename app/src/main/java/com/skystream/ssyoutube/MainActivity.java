@@ -632,7 +632,6 @@ public class MainActivity extends AppCompatActivity {
                     + "function observeShadowRoots(root){"
                     + "if(!root||!root.querySelectorAll){return;}"
                     + "var all=asArray(root.querySelectorAll('*'));"
-                    + "if(root.host){all.push(root.host);}"
                     + "for(var i=0;i<all.length;i++){"
                     + "var shadow=all[i].shadowRoot;"
                     + "if(shadow&&!shadow.__ssyoutubeLogoObserved){"
