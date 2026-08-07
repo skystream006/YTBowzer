@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="miniplayer_width">160dp</dimen>
-    <dimen name="miniplayer_height">90dp</dimen>
+    <dimen name="miniplayer_width">240dp</dimen>
+    <dimen name="miniplayer_height">135dp</dimen>
     <dimen name="miniplayer_margin">12dp</dimen>
     <dimen name="miniplayer_close_size">28dp</dimen>
 </resources>
