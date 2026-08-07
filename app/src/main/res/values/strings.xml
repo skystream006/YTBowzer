@@ -17,4 +17,5 @@
     <string name="forward">Forward</string>
     <string name="refresh">Refresh</string>
     <string name="home">Home</string>
+    <string name="close_miniplayer">Close miniplayer</string>
 </resources>
