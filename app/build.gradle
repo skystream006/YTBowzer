@@ -14,8 +14,8 @@ android {
         applicationId "com.skystream.ssyoutube"
         minSdk 21
         targetSdk 34
-        versionCode 37
-        versionName "0.01.37"
+        versionCode 38
+        versionName "0.01.38"
     }
 
     signingConfigs {
