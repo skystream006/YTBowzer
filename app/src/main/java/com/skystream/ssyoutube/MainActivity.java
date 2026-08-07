@@ -1,4 +1,4 @@
-package com.skystream.ytbowzer;
+package com.skystream.ssyoutube;
 
 import android.annotation.SuppressLint;
 import android.content.DialogInterface;
@@ -48,14 +48,14 @@ import java.util.Map;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String PREFS_NAME = "ytbowzer_prefs";
+    private static final String PREFS_NAME = "ssyoutube_prefs";
     private static final String KEY_THEME = "theme";
     private static final String KEY_DESKTOP_MODE = "desktop_mode";
 
     /** Hides ad containers that are rendered inline by the page itself. */
     static final String AD_HIDING_SCRIPT =
             "(function(){"
-                    + "var id='ytbowzer-adblock';"
+                    + "var id='ssyoutube-adblock';"
                     + "if(document.getElementById(id)){return;}"
                     + "var s=document.createElement('style');"
                     + "s.id=id;"
@@ -95,8 +95,8 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String AD_JSON_PRUNE_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerJsonPruneInstalled){return;}"
-                    + "window.__ytbowzerJsonPruneInstalled=true;"
+                    + "if(window.__ssyoutubeJsonPruneInstalled){return;}"
+                    + "window.__ssyoutubeJsonPruneInstalled=true;"
                     + "var AD_KEYS=['playerAds','adPlacements','adSlots','adBreakHeartbeatParams',"
                     + "'playerAdParams','adPlacementConfig','adBreakParams'];"
                     + "function prune(value,depth){"
@@ -137,8 +137,8 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String BUY_NOW_CLEANUP_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerBuyNowCleanupInstalled){return;}"
-                    + "window.__ytbowzerBuyNowCleanupInstalled=true;"
+                    + "if(window.__ssyoutubeBuyNowCleanupInstalled){return;}"
+                    + "window.__ssyoutubeBuyNowCleanupInstalled=true;"
                     + "var selector='a,button,[role=\"button\"],[aria-label],[title]';"
                     + "function textOf(el){return ((el.innerText||el.textContent||'')+' '+"
                     + "(el.getAttribute('aria-label')||'')+' '+(el.getAttribute('title')||''))"
@@ -179,8 +179,8 @@ public class MainActivity extends AppCompatActivity {
     /** Removes the "Playables" shelves and navigation entries from YouTube pages. */
     static final String PLAYABLES_CLEANUP_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerPlayablesCleanupInstalled){return;}"
-                    + "window.__ytbowzerPlayablesCleanupInstalled=true;"
+                    + "if(window.__ssyoutubePlayablesCleanupInstalled){return;}"
+                    + "window.__ssyoutubePlayablesCleanupInstalled=true;"
                     + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
                     + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
                     + "ytd-rich-section-renderer,ytd-shelf-renderer,"
@@ -226,8 +226,8 @@ public class MainActivity extends AppCompatActivity {
     /** Removes the "Posts" shelf from the YouTube home page as it appears. */
     static final String POSTS_CLEANUP_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerPostsCleanupInstalled){return;}"
-                    + "window.__ytbowzerPostsCleanupInstalled=true;"
+                    + "if(window.__ssyoutubePostsCleanupInstalled){return;}"
+                    + "window.__ssyoutubePostsCleanupInstalled=true;"
                     + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
                     + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
                     + "ytd-rich-section-renderer,ytd-shelf-renderer';"
@@ -296,8 +296,8 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "function syncVideoPosters(root){"
                     + "var videoId=currentVideoId();"
-                    + "if(videoId!==window.__ytbowzerVideoThumbnailId){"
-                    + "window.__ytbowzerVideoThumbnailId=videoId;"
+                    + "if(videoId!==window.__ssyoutubeVideoThumbnailId){"
+                    + "window.__ssyoutubeVideoThumbnailId=videoId;"
                     + "clearVideoPosters();"
                     + "}"
                     + "var thumbnail=currentThumbnail();"
@@ -309,10 +309,10 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "}"
                     + "syncVideoPosters(document);"
-                    + "if(window.__ytbowzerVideoThumbnailPosterInstalled){return;}"
-                    + "window.__ytbowzerVideoThumbnailPosterInstalled=true;"
+                    + "if(window.__ssyoutubeVideoThumbnailPosterInstalled){return;}"
+                    + "window.__ssyoutubeVideoThumbnailPosterInstalled=true;"
                     + "document.addEventListener('yt-navigate-start',function(){"
-                    + "window.__ytbowzerVideoThumbnailId=null;"
+                    + "window.__ssyoutubeVideoThumbnailId=null;"
                     + "clearVideoPosters();"
                     + "},true);"
                     + "document.addEventListener('yt-navigate-finish',function(){"
@@ -335,10 +335,10 @@ public class MainActivity extends AppCompatActivity {
     /** Adds each channel's subscriber count beside its avatar on video cards. */
     static final String SUBSCRIBER_COUNT_SCRIPT =
             "(function(){"
-                    + "var badgeClass='ytbowzer-subscriber-count';"
+                    + "var badgeClass='ssyoutube-subscriber-count';"
                     + "var avatarSelector='ytm-channel-thumbnail-with-link-renderer,"
                     + "ytm-channel-thumbnail-supported-renderer,ytm-channel-thumbnail-renderer,ytm-avatar';"
-                    + "var cache=window.__ytbowzerSubscriberCounts||(window.__ytbowzerSubscriberCounts={});"
+                    + "var cache=window.__ssyoutubeSubscriberCounts||(window.__ssyoutubeSubscriberCounts={});"
                     + "function channelUrl(avatar){"
                     + "var link=avatar.querySelector('a[href]')||avatar.closest('a[href]');"
                     + "if(!link){return null;}"
@@ -393,8 +393,8 @@ public class MainActivity extends AppCompatActivity {
                     + "})(avatars[i]);}"
                     + "}"
                     + "sync(document);"
-                    + "if(window.__ytbowzerSubscriberCountInstalled){return;}"
-                    + "window.__ytbowzerSubscriberCountInstalled=true;"
+                    + "if(window.__ssyoutubeSubscriberCountInstalled){return;}"
+                    + "window.__ssyoutubeSubscriberCountInstalled=true;"
                     + "new MutationObserver(function(mutations){"
                     + "for(var i=0;i<mutations.length;i++){"
                     + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
@@ -411,8 +411,8 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String FULLSCREEN_GESTURE_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerFullscreenGestureInstalled){return;}"
-                    + "window.__ytbowzerFullscreenGestureInstalled=true;"
+                    + "if(window.__ssyoutubeFullscreenGestureInstalled){return;}"
+                    + "window.__ssyoutubeFullscreenGestureInstalled=true;"
                     + "var SWIPE_THRESHOLD=48;"
                     + "var tracking=false,startX=0,startY=0,activePlayer=null;"
                     + "function playerElement(target){"
@@ -467,14 +467,14 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String MINIPLAYER_GESTURE_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerMiniplayerGestureInstalled){return;}"
-                    + "window.__ytbowzerMiniplayerGestureInstalled=true;"
+                    + "if(window.__ssyoutubeMiniplayerGestureInstalled){return;}"
+                    + "window.__ssyoutubeMiniplayerGestureInstalled=true;"
                     + "var SWIPE_THRESHOLD=48;"
                     + "var tracking=false,startX=0,startY=0,activePlayer=null;"
                     + "function isWatchPage(){"
                     + "return (window.location.pathname||'')==='/watch';"
                     + "}"
-                    + "window.__ytbowzerResultsUrl=window.__ytbowzerResultsUrl||"
+                    + "window.__ssyoutubeResultsUrl=window.__ssyoutubeResultsUrl||"
                     + "(isWatchPage()?null:location.href);"
                     + "function playerElement(target){"
                     + "return target&&target.closest&&target.closest("
@@ -489,7 +489,7 @@ public class MainActivity extends AppCompatActivity {
                     + "return !!video&&!video.paused&&!video.ended;"
                     + "}"
                     + "function trackResultsUrl(){"
-                    + "if(!isWatchPage()){window.__ytbowzerResultsUrl=location.href;}"
+                    + "if(!isWatchPage()){window.__ssyoutubeResultsUrl=location.href;}"
                     + "}"
                     + "document.addEventListener('yt-navigate-finish',trackResultsUrl,true);"
                     + "window.addEventListener('popstate',trackResultsUrl,true);"
@@ -507,14 +507,14 @@ public class MainActivity extends AppCompatActivity {
                     + "tracking=false;"
                     + "var player=activePlayer;"
                     + "activePlayer=null;"
-                    + "if(!window.YtbowzerNative||!window.YtbowzerNative.minimize){return;}"
+                    + "if(!window.ssYouTubeNative||!window.ssYouTubeNative.minimize){return;}"
                     + "var touch=e.changedTouches&&e.changedTouches[0];"
                     + "if(!touch){return;}"
                     + "var dy=touch.clientY-startY;"
                     + "var dx=touch.clientX-startX;"
                     + "if(dy<SWIPE_THRESHOLD||Math.abs(dx)>Math.abs(dy)){return;}"
                     + "if(isFullscreen()||!isPlaying(player)){return;}"
-                    + "window.YtbowzerNative.minimize(window.__ytbowzerResultsUrl||'');"
+                    + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'');"
                     + "},{passive:true,capture:true});"
                     + "})()";
 
@@ -524,8 +524,8 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String RESULTS_PRELOAD_SCRIPT =
             "(function(){"
-                    + "if(window.__ytbowzerResultsPreloadInstalled){return;}"
-                    + "window.__ytbowzerResultsPreloadInstalled=true;"
+                    + "if(window.__ssyoutubeResultsPreloadInstalled){return;}"
+                    + "window.__ssyoutubeResultsPreloadInstalled=true;"
                     + "var PRELOAD_SCREENS=2;"
                     + "var NativeIntersectionObserver=window.IntersectionObserver;"
                     + "if(!NativeIntersectionObserver){return;}"
@@ -563,12 +563,12 @@ public class MainActivity extends AppCompatActivity {
      * reach the network, they are answered from the app resources by
      * {@link YouTubeWebViewClient#shouldInterceptRequest}.
      */
-    static final String APP_LOGO_PATH = "/ytbowzer_app_logo.png";
+    static final String APP_LOGO_PATH = "/ssyoutube_app_logo.png";
 
     /** Swaps the YouTube wordmark on the page for the bundled app logo. */
     static final String APP_LOGO_SCRIPT =
             "(function(){"
-                    + "var CLASS='ytbowzer-app-logo';"
+                    + "var CLASS='ssyoutube-app-logo';"
                     + "var CONTAINERS='ytm-mobile-topbar-renderer .topbar-logo,"
                     + ".mobile-topbar-header-logo,ytm-logo,ytd-topbar-logo-renderer,ytd-logo,"
                     + "a#logo,#logo-icon';"
@@ -611,8 +611,8 @@ public class MainActivity extends AppCompatActivity {
                     + "for(var j=0;j<images.length;j++){replaceImage(images[j]);}"
                     + "}"
                     + "applyLogos(document);"
-                    + "if(window.__ytbowzerAppLogoInstalled){return;}"
-                    + "window.__ytbowzerAppLogoInstalled=true;"
+                    + "if(window.__ssyoutubeAppLogoInstalled){return;}"
+                    + "window.__ssyoutubeAppLogoInstalled=true;"
                     + "document.addEventListener('yt-navigate-finish',function(){"
                     + "applyLogos(document);"
                     + "},true);"
@@ -630,7 +630,7 @@ public class MainActivity extends AppCompatActivity {
     /** Height the bundled logo is downscaled to before it is handed to the WebView. */
     private static final int APP_LOGO_HEIGHT_PX = 96;
 
-    private static final String JS_INTERFACE_NAME = "YtbowzerNative";
+    private static final String JS_INTERFACE_NAME = "ssYouTubeNative";
 
     private final Map<Integer, byte[]> appLogoCache = new HashMap<>();
 

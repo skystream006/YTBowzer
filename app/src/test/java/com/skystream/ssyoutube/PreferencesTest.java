@@ -1,4 +1,4 @@
-package com.skystream.ytbowzer;
+package com.skystream.ssyoutube;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
