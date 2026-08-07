@@ -1,4 +1,4 @@
-package com.skystream.ytbowzer;
+package com.skystream.ssyoutube;
 
 import java.util.Arrays;
 import java.util.List;

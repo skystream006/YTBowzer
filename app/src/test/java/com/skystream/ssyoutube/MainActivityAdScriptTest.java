@@ -1,4 +1,4 @@
-package com.skystream.ytbowzer;
+package com.skystream.ssyoutube;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -94,7 +94,7 @@ public class MainActivityAdScriptTest {
     public void injectsSubscriberCountsBesideChannelAvatars() {
         String script = MainActivity.SUBSCRIBER_COUNT_SCRIPT;
         assertTrue(script.contains("subscriberCountText"));
-        assertTrue(script.contains("ytbowzer-subscriber-count"));
+        assertTrue(script.contains("ssyoutube-subscriber-count"));
         assertTrue(script.contains("insertAdjacentElement('afterend',badge)"));
         assertTrue(script.contains("fetch(url,{credentials:'same-origin'})"));
         assertTrue(script.contains("MutationObserver"));
@@ -127,8 +127,8 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("isFullscreen"));
         assertTrue(script.contains("isPlaying"));
         assertTrue(script.contains("yt-navigate-finish"));
-        assertTrue(script.contains("__ytbowzerResultsUrl"));
-        assertTrue(script.contains("window.YtbowzerNative.minimize"));
+        assertTrue(script.contains("__ssyoutubeResultsUrl"));
+        assertTrue(script.contains("window.ssYouTubeNative.minimize"));
     }
 
     @Test

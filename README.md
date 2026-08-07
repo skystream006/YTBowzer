@@ -33,7 +33,7 @@ keeps you signed in, and blocks advertising/tracking requests.
 ## Project layout
 
 ```
-app/src/main/java/com/skystream/ytbowzer/
+app/src/main/java/com/skystream/ssyoutube/
   MainActivity.java   WebView setup, cookie persistence, request interception
   AdBlocker.java      URL-based ad/tracker blocklist (pure Java, unit tested)
   SiteScope.java      Which URLs stay inside the app (pure Java, unit tested)
