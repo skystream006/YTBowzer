@@ -59,9 +59,9 @@ public final class Preferences {
             return homeUrl(desktopMode);
         }
         int authorityStart = lower.indexOf("://") + 3;
-        int authorityEnd = lower.length();
-        for (int i = authorityStart; i < lower.length(); i++) {
-            char c = lower.charAt(i);
+        int authorityEnd = url.length();
+        for (int i = authorityStart; i < url.length(); i++) {
+            char c = url.charAt(i);
             if (c == '/' || c == '?' || c == '#') {
                 authorityEnd = i;
                 break;
