@@ -154,6 +154,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("img[src*=\"yt_logo\"]"));
         assertTrue(script.contains("img[alt*=\"YouTube\"]"));
         assertTrue(script.contains("location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
+        assertTrue(script.contains("image.classList.contains(CLASS)&&image.src===logoSrc()"));
         assertTrue(script.contains("styleImage(existing,height)"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("yt-navigate-finish"));

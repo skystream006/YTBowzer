@@ -589,6 +589,7 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "function replaceImage(image){"
                     + "if(!image.classList){return;}"
+                    + "if(image.classList.contains(CLASS)&&image.src===logoSrc()){return;}"
                     + "image.classList.add(CLASS);"
                     + "image.removeAttribute('srcset');"
                     + "styleImage(image,image.offsetHeight||24);"
