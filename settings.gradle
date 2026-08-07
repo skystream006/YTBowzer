@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ssYoutube"
+rootProject.name = "ssYouTube"
 include ':app'

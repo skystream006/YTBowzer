@@ -89,7 +89,7 @@ jobs:
             echo "No pull request found for ${{ github.sha }}; using 0" >&2
             pr_number=0
           fi
-          echo "apk_name=ssYoutube-v${{ steps.version.outputs.version_name }}-pr${pr_number}" >> "$GITHUB_OUTPUT"
+          echo "apk_name=ssYouTube-v${{ steps.version.outputs.version_name }}-pr${pr_number}" >> "$GITHUB_OUTPUT"
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk "${{ steps.apk_name.outputs.apk_name }}.apk"
