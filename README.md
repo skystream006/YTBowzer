@@ -28,7 +28,20 @@ keeps you signed in, and blocks advertising/tracking requests.
   as they appear.
 - **No Posts shelf** – the "Posts" section is removed from the home page as it appears.
 - **Subscriber counts** – a page injection loads each video card channel's public subscriber
-  count and displays it beside the channel avatar.
+  count and displays it beside the channel avatar. Comment authors are skipped and the
+  lookups are queued a few at a time so they never crowd out the page's own requests.
+- **Video swipe gestures** – swiping up on a playing video enters fullscreen, swiping down
+  exits it, and swiping down on a watch page shrinks the video into a miniplayer. The
+  gestures follow the touch through `touchmove` and also complete on `touchcancel` (which
+  the WebView fires when it takes the gesture over), resolve the player through the event's
+  composed path so touches inside the player's shadow DOM count, scale their distance
+  threshold with the viewport and fall back to the mobile fullscreen control or the
+  Fullscreen API when the desktop player button is absent.
+- **Foldables** – fold/unfold posture changes (`screenLayout`, `smallestScreenSize`,
+  `density`) are handled by the activity instead of recreating it, so the page, its playback
+  and the injected gesture handlers survive folding. The cleanup injections never touch the
+  comments section, which on large screens is rendered inside an engagement panel that looks
+  like the shelves they remove.
 
 ## Project layout
 
