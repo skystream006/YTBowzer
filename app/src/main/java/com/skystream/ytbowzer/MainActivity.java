@@ -563,7 +563,7 @@ public class MainActivity extends AppCompatActivity {
      * reach the network, they are answered from the app resources by
      * {@link YouTubeWebViewClient#shouldInterceptRequest}.
      */
-    static final String APP_LOGO_PATH = "/ytbowzer_app_logo.jpg";
+    static final String APP_LOGO_PATH = "/ytbowzer_app_logo.png";
 
     /** Swaps the YouTube wordmark on the page for the bundled app logo. */
     static final String APP_LOGO_SCRIPT =
