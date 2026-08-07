@@ -212,6 +212,20 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void replacesLogoWithinShadowHostsUsingAnOverlayInsteadOfChildReplacement() {
+        String script = MainActivity.APP_LOGO_SCRIPT;
+        // Mobile masthead custom elements (e.g. ytm-topbar-logo-renderer) attach an open
+        // shadow root and render their logo entirely inside it, so appending a replacement
+        // image as a light-DOM child of the host (the desktop-style approach) is invisible.
+        // A distinct code path detects such hosts and overlays a positioned image instead.
+        assertTrue(script.contains("if(node.shadowRoot){replaceShadowHost(node);return;}"));
+        assertTrue(script.contains("function replaceShadowHost(node)"));
+        assertTrue(script.contains("node.style.opacity='0'"));
+        assertTrue(script.contains("function positionOverlay(node,overlay)"));
+        assertTrue(script.contains("getBoundingClientRect()"));
+    }
+
+    @Test
     public void recognisesAppLogoRequests() {
         assertTrue(MainActivity.isAppLogoRequest(
                 "https://m.youtube.com" + MainActivity.APP_LOGO_PATH));
