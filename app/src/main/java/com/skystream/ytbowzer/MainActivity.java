@@ -673,7 +673,7 @@ public class MainActivity extends AppCompatActivity {
                 webSettings.setBuiltInZoomControls(wantsDesktop);
                 webSettings.setDisplayZoomControls(false);
                 webView.clearHistory();
-                webView.loadUrl(Preferences.homeUrl(wantsDesktop));
+                webView.loadUrl(Preferences.siteModeUrl(webView.getUrl(), wantsDesktop));
             }
         });
 
