@@ -44,6 +44,47 @@ public final class Preferences {
     }
 
     /**
+     * @param url the currently loaded URL
+     * @param desktopMode true when the user asked for the desktop site
+     * @return the same YouTube page on the host matching the selected site mode
+     */
+    public static String siteModeUrl(String url, boolean desktopMode) {
+        if (url == null) {
+            return homeUrl(desktopMode);
+        }
+        String lower = url.toLowerCase(Locale.US);
+        boolean isHttps = lower.startsWith("https://");
+        boolean isHttp = lower.startsWith("http://");
+        if (!isHttps && !isHttp) {
+            return homeUrl(desktopMode);
+        }
+        int authorityStart = lower.indexOf("://") + 3;
+        int authorityEnd = lower.length();
+        for (int i = authorityStart; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            if (c == '/' || c == '?' || c == '#') {
+                authorityEnd = i;
+                break;
+            }
+        }
+        String host = lower.substring(authorityStart, authorityEnd);
+        int at = host.lastIndexOf('@');
+        if (at >= 0) {
+            host = host.substring(at + 1);
+        }
+        int colon = host.indexOf(':');
+        if (colon >= 0) {
+            host = host.substring(0, colon);
+        }
+        if (!host.equals("youtube.com") && !host.equals("m.youtube.com")
+                && !host.equals("www.youtube.com")) {
+            return url;
+        }
+        return "https://" + (desktopMode ? "www.youtube.com" : "m.youtube.com")
+                + url.substring(authorityEnd);
+    }
+
+    /**
      * The floating settings button is only shown on the YouTube home page, i.e. the page
      * that carries the bottom navigation bar.
      *
