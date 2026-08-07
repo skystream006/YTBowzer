@@ -47,6 +47,7 @@ public final class Preferences {
      * @param url the currently loaded URL
      * @param desktopMode true when the user asked for the desktop site
      * @return the same YouTube page on the host matching the selected site mode
+     *         when it is loaded from youtube.com, m.youtube.com or www.youtube.com
      */
     public static String siteModeUrl(String url, boolean desktopMode) {
         if (url == null) {

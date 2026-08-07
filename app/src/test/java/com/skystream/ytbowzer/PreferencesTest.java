@@ -24,6 +24,8 @@ public class PreferencesTest {
     public void siteModeKeepsCurrentYouTubePage() {
         assertEquals("https://www.youtube.com/watch?v=abc&list=def",
                 Preferences.siteModeUrl("https://m.youtube.com/watch?v=abc&list=def", true));
+        assertEquals("https://www.youtube.com/watch?v=abc",
+                Preferences.siteModeUrl("https://youtube.com/watch?v=abc", true));
         assertEquals("https://m.youtube.com/feed/subscriptions",
                 Preferences.siteModeUrl("https://www.youtube.com/feed/subscriptions", false));
     }
