@@ -132,6 +132,28 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     /**
+     * Elements that make up (or host) the comments section. The cleanup scripts below never
+     * remove or decorate anything inside them: on large screens (e.g. unfolded foldables) the
+     * mobile site renders comments inside an engagement panel whose sections look just like the
+     * shelves the cleanup scripts target, which previously left the comment list empty.
+     */
+    static final String COMMENTS_SELECTOR =
+            "ytm-comment-section-renderer,ytm-comments-entry-point-header-renderer,"
+                    + "ytm-comment-thread-renderer,ytm-comment-renderer,"
+                    + "ytm-comment-replies-renderer,ytm-engagement-panel,"
+                    + "ytm-engagement-panel-section-list-renderer,#comments,"
+                    + "ytd-comments,ytd-comment-thread-renderer,ytd-comment-renderer";
+
+    /** JavaScript helper that reports whether a node belongs to the comments section. */
+    private static final String COMMENTS_HELPER_SCRIPT =
+            "var COMMENTS='" + COMMENTS_SELECTOR + "';"
+                    + "function inComments(el){"
+                    + "if(!el||el.nodeType!==1){return false;}"
+                    + "if(el.closest&&el.closest(COMMENTS)){return true;}"
+                    + "return !!(el.querySelector&&el.querySelector(COMMENTS));"
+                    + "}";
+
+    /**
      * Removes shopping call-to-action buttons (e.g. "Buy now", "Shop now", "Visit site")
      * that can be added after page load.
      */
@@ -139,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
             "(function(){"
                     + "if(window.__ssyoutubeBuyNowCleanupInstalled){return;}"
                     + "window.__ssyoutubeBuyNowCleanupInstalled=true;"
+                    + COMMENTS_HELPER_SCRIPT
                     + "var selector='a,button,[role=\"button\"],[aria-label],[title]';"
                     + "function textOf(el){return ((el.innerText||el.textContent||'')+' '+"
                     + "(el.getAttribute('aria-label')||'')+' '+(el.getAttribute('title')||''))"
@@ -149,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
                     + "if(root&&root.matches&&root.matches(selector)){nodes.push(root);}"
                     + "for(var i=0;i<nodes.length;i++){"
                     + "var el=nodes[i];"
+                    + "if(inComments(el)){continue;}"
                     + "if(/\\bbuy\\s+(it\\s+)?now\\b|\\bshop\\s+now\\b|\\bvisit\\s+site\\b/"
                     + ".test(textOf(el))){"
                     + "var target=el.closest('ytm-product-card-renderer,ytm-shopping-offer-renderer,"
@@ -181,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
             "(function(){"
                     + "if(window.__ssyoutubePlayablesCleanupInstalled){return;}"
                     + "window.__ssyoutubePlayablesCleanupInstalled=true;"
+                    + COMMENTS_HELPER_SCRIPT
                     + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
                     + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
                     + "ytd-rich-section-renderer,ytd-shelf-renderer,"
@@ -192,8 +217,7 @@ public class MainActivity extends AppCompatActivity {
                     + ".replace(/\\s+/g,' ').trim().toLowerCase();}"
                     + "function asArray(list){return Array.prototype.slice.call(list);}"
                     + "function isPlayables(el){"
-                    + "if(el.querySelector('ytm-comment-section-renderer,ytm-comments-entry-point-header-renderer,"
-                    + "ytd-comments,ytd-comment-thread-renderer')){return false;}"
+                    + "if(inComments(el)){return false;}"
                     + "var href=el.getAttribute&&el.getAttribute('href')||'';"
                     + "if(href.indexOf('playables')!==-1){return true;}"
                     + "return /\\bplayables?\\b/.test(textOf(el));"
@@ -228,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
             "(function(){"
                     + "if(window.__ssyoutubePostsCleanupInstalled){return;}"
                     + "window.__ssyoutubePostsCleanupInstalled=true;"
+                    + COMMENTS_HELPER_SCRIPT
                     + "var selector='ytm-rich-section-renderer,ytm-shelf-renderer,"
                     + "ytm-item-section-renderer,ytm-rich-shelf-renderer,"
                     + "ytd-rich-section-renderer,ytd-shelf-renderer';"
@@ -235,8 +260,7 @@ public class MainActivity extends AppCompatActivity {
                     + ".replace(/\\s+/g,' ').trim().toLowerCase();}"
                     + "function asArray(list){return Array.prototype.slice.call(list);}"
                     + "function isPosts(el){"
-                    + "if(el.querySelector('ytm-comment-section-renderer,ytm-comments-entry-point-header-renderer,"
-                    + "ytd-comments,ytd-comment-thread-renderer')){return false;}"
+                    + "if(inComments(el)){return false;}"
                     + "var headings=asArray(el.querySelectorAll('h1,h2,h3,h4,"
                     + "ytm-rich-section-renderer>yt-formatted-string,"
                     + ".section-title yt-formatted-string'));"
@@ -339,6 +363,21 @@ public class MainActivity extends AppCompatActivity {
                     + "var avatarSelector='ytm-channel-thumbnail-with-link-renderer,"
                     + "ytm-channel-thumbnail-supported-renderer,ytm-channel-thumbnail-renderer,ytm-avatar';"
                     + "var cache=window.__ssyoutubeSubscriberCounts||(window.__ssyoutubeSubscriberCounts={});"
+                    + COMMENTS_HELPER_SCRIPT
+                    // Channel pages are full HTML documents, so the lookups are queued: a long
+                    // comment list would otherwise fire hundreds of parallel requests, which
+                    // starves the page's own continuation requests and leaves it half rendered.
+                    + "var MAX_ACTIVE_LOOKUPS=3;"
+                    + "var queue=window.__ssyoutubeSubscriberQueue||"
+                    + "(window.__ssyoutubeSubscriberQueue={pending:[],active:0});"
+                    + "function pump(){"
+                    + "while(queue.active<MAX_ACTIVE_LOOKUPS&&queue.pending.length){"
+                    + "queue.active++;"
+                    + "queue.pending.shift()();"
+                    + "}"
+                    + "}"
+                    + "function enqueue(job){queue.pending.push(job);pump();}"
+                    + "function lookupDone(){queue.active--;pump();}"
                     + "function channelUrl(avatar){"
                     + "var link=avatar.querySelector('a[href]')||avatar.closest('a[href]');"
                     + "if(!link){return null;}"
@@ -377,6 +416,7 @@ public class MainActivity extends AppCompatActivity {
                     + "avatars.push(root);"
                     + "}"
                     + "for(var i=0;i<avatars.length;i++){(function(avatar){"
+                    + "if(inComments(avatar)){return;}"
                     + "var url=channelUrl(avatar);"
                     + "if(!url){return;}"
                     + "if(Object.prototype.hasOwnProperty.call(cache,url)){"
@@ -384,12 +424,14 @@ public class MainActivity extends AppCompatActivity {
                     + "return;"
                     + "}"
                     + "cache[url]=null;"
+                    + "enqueue(function(){"
                     + "fetch(url,{credentials:'same-origin'}).then(function(response){return response.text();})"
                     + ".then(function(html){"
                     + "var count=subscriberCount(html);"
                     + "cache[url]=count;"
                     + "if(count){addBadge(avatar,count);}"
-                    + "}).catch(function(){});"
+                    + "}).catch(function(){}).then(lookupDone);"
+                    + "});"
                     + "})(avatars[i]);}"
                     + "}"
                     + "sync(document);"
@@ -406,58 +448,131 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     /**
-     * Lets the user swipe up on a playing video to enter fullscreen and swipe down while
-     * fullscreen to exit it, mirroring the native YouTube app's gesture behavior.
+     * Shared touch tracking used by the swipe gestures below. It is installed once per page and
+     * exposes {@code window.__ssyoutubeGestures}.
+     *
+     * <p>Touches are followed through {@code touchmove} and the gesture is also completed on
+     * {@code touchcancel}: while the page scrolls (or the WebView takes the gesture over, which is
+     * common on large/foldable screens) the browser cancels the touch sequence instead of ending
+     * it, which previously dropped the swipe entirely. The player element is resolved from the
+     * event's composed path so touches that start inside the player's shadow DOM are recognised
+     * too, and the distance threshold scales with the viewport so the same flick works on both
+     * the folded and unfolded screen.
      */
-    static final String FULLSCREEN_GESTURE_SCRIPT =
+    private static final String GESTURE_SUPPORT_SCRIPT =
             "(function(){"
-                    + "if(window.__ssyoutubeFullscreenGestureInstalled){return;}"
-                    + "window.__ssyoutubeFullscreenGestureInstalled=true;"
-                    + "var SWIPE_THRESHOLD=48;"
-                    + "var tracking=false,startX=0,startY=0,activePlayer=null;"
-                    + "function playerElement(target){"
-                    + "return target&&target.closest&&target.closest("
-                    + "'#movie_player,.html5-video-player,ytd-player,ytm-player');"
+                    + "if(window.__ssyoutubeGestures){return;}"
+                    + "var PLAYER_SELECTOR='#movie_player,.html5-video-player,ytd-player,ytm-player,"
+                    + "ytm-video-player,.player-container,#player-container-id,#player';"
+                    + "var handlers=[];"
+                    + "var tracking=false,startX=0,startY=0,lastX=0,lastY=0,activePlayer=null;"
+                    + "function threshold(){"
+                    + "return Math.max(32,Math.min(120,Math.round((window.innerHeight||800)*0.06)));"
+                    + "}"
+                    + "function eventPath(e){"
+                    + "if(e.composedPath){try{return e.composedPath();}catch(err){}}"
+                    + "var path=[],node=e.target;"
+                    + "while(node){path.push(node);node=node.parentNode||node.host;}"
+                    + "return path;"
+                    + "}"
+                    + "function playerElement(e){"
+                    + "var path=eventPath(e);"
+                    + "for(var i=0;i<path.length;i++){"
+                    + "var node=path[i];"
+                    + "if(!node||node.nodeType!==1){continue;}"
+                    + "if(node.matches&&node.matches(PLAYER_SELECTOR)){return node;}"
+                    + "var found=node.closest&&node.closest(PLAYER_SELECTOR);"
+                    + "if(found){return found;}"
+                    + "}"
+                    + "return null;"
                     + "}"
                     + "function isFullscreen(){"
                     + "return !!(document.fullscreenElement||document.webkitFullscreenElement||"
                     + "document.querySelector('.ytp-fullscreen'));"
                     + "}"
-                    + "function fullscreenButton(){"
-                    + "return document.querySelector('.ytp-fullscreen-button');"
-                    + "}"
                     + "function isPlaying(player){"
                     + "var video=player&&player.querySelector&&player.querySelector('video');"
+                    + "if(!video){video=document.querySelector('video');}"
                     + "return !!video&&!video.paused&&!video.ended;"
                     + "}"
+                    + "function reset(){tracking=false;activePlayer=null;}"
+                    + "function finish(){"
+                    + "if(!tracking){return;}"
+                    + "var player=activePlayer;"
+                    + "var dx=lastX-startX;"
+                    + "var dy=lastY-startY;"
+                    + "reset();"
+                    + "if(Math.abs(dy)<threshold()||Math.abs(dx)>Math.abs(dy)){return;}"
+                    + "for(var i=0;i<handlers.length;i++){"
+                    + "try{handlers[i]({player:player,dx:dx,dy:dy});}catch(err){}"
+                    + "}"
+                    + "}"
                     + "document.addEventListener('touchstart',function(e){"
-                    + "if(e.touches.length!==1){tracking=false;activePlayer=null;return;}"
-                    + "var player=playerElement(e.target);"
-                    + "if(!player){tracking=false;activePlayer=null;return;}"
+                    + "if(e.touches.length!==1){reset();return;}"
+                    + "var player=playerElement(e);"
+                    + "if(!player){reset();return;}"
                     + "tracking=true;"
                     + "activePlayer=player;"
-                    + "startX=e.touches[0].clientX;"
-                    + "startY=e.touches[0].clientY;"
+                    + "startX=lastX=e.touches[0].clientX;"
+                    + "startY=lastY=e.touches[0].clientY;"
                     + "},{passive:true,capture:true});"
-                    + "document.addEventListener('touchend',function(e){"
-                    + "if(!tracking){return;}"
-                    + "tracking=false;"
-                    + "var player=activePlayer;"
-                    + "activePlayer=null;"
+                    + "document.addEventListener('touchmove',function(e){"
+                    + "if(!tracking||e.touches.length!==1){return;}"
+                    + "lastX=e.touches[0].clientX;"
+                    + "lastY=e.touches[0].clientY;"
+                    + "},{passive:true,capture:true});"
+                    + "function complete(e){"
                     + "var touch=e.changedTouches&&e.changedTouches[0];"
-                    + "if(!touch){return;}"
-                    + "var dy=touch.clientY-startY;"
-                    + "var dx=touch.clientX-startX;"
-                    + "if(Math.abs(dy)<SWIPE_THRESHOLD||Math.abs(dx)>Math.abs(dy)){return;}"
-                    + "var button=fullscreenButton();"
-                    + "if(!button){return;}"
-                    + "var fullscreen=isFullscreen();"
-                    + "if(dy<0&&!fullscreen&&isPlaying(player)){"
-                    + "button.click();"
-                    + "}else if(dy>0&&fullscreen){"
-                    + "button.click();"
+                    + "if(touch){lastX=touch.clientX;lastY=touch.clientY;}"
+                    + "finish();"
                     + "}"
-                    + "},{passive:true,capture:true});"
+                    + "document.addEventListener('touchend',complete,{passive:true,capture:true});"
+                    + "document.addEventListener('touchcancel',complete,{passive:true,capture:true});"
+                    + "window.__ssyoutubeGestures={"
+                    + "onVerticalSwipe:function(handler){handlers.push(handler);},"
+                    + "isFullscreen:isFullscreen,"
+                    + "isPlaying:isPlaying"
+                    + "};"
+                    + "})()";
+
+    /**
+     * Lets the user swipe up on a playing video to enter fullscreen and swipe down while
+     * fullscreen to exit it, mirroring the native YouTube app's gesture behavior. The mobile
+     * site does not use the desktop player's {@code .ytp-fullscreen-button}, so the mobile
+     * control is looked up as well and the Fullscreen API is used as a last resort.
+     */
+    static final String FULLSCREEN_GESTURE_SCRIPT =
+            GESTURE_SUPPORT_SCRIPT + ";"
+                    + "(function(){"
+                    + "if(window.__ssyoutubeFullscreenGestureInstalled||!window.__ssyoutubeGestures){return;}"
+                    + "window.__ssyoutubeFullscreenGestureInstalled=true;"
+                    + "var gestures=window.__ssyoutubeGestures;"
+                    + "var BUTTON_SELECTOR='.ytp-fullscreen-button,button.fullscreen-icon,"
+                    + ".fullscreen-icon,[aria-label=\"Full screen\"],[aria-label=\"Exit full screen\"]';"
+                    + "function fullscreenButton(player){"
+                    + "return (player&&player.querySelector&&player.querySelector(BUTTON_SELECTOR))||"
+                    + "document.querySelector(BUTTON_SELECTOR);"
+                    + "}"
+                    + "function toggleFullscreen(player){"
+                    + "var button=fullscreenButton(player);"
+                    + "if(button){button.click();return;}"
+                    + "if(gestures.isFullscreen()){"
+                    + "var exit=document.exitFullscreen||document.webkitExitFullscreen;"
+                    + "if(exit){try{exit.call(document);}catch(e){}}"
+                    + "return;"
+                    + "}"
+                    + "var request=player&&(player.requestFullscreen||player.webkitRequestFullscreen);"
+                    + "if(request){try{request.call(player);}catch(e){}}"
+                    + "}"
+                    + "gestures.onVerticalSwipe(function(swipe){"
+                    + "var dy=swipe.dy;"
+                    + "var fullscreen=gestures.isFullscreen();"
+                    + "if(dy<0&&!fullscreen&&gestures.isPlaying(swipe.player)){"
+                    + "toggleFullscreen(swipe.player);"
+                    + "}else if(dy>0&&fullscreen){"
+                    + "toggleFullscreen(swipe.player);"
+                    + "}"
+                    + "});"
                     + "})()";
 
     /**
@@ -466,56 +581,27 @@ public class MainActivity extends AppCompatActivity {
      * underneath, mirroring the native YouTube app's miniplayer gesture.
      */
     static final String MINIPLAYER_GESTURE_SCRIPT =
-            "(function(){"
-                    + "if(window.__ssyoutubeMiniplayerGestureInstalled){return;}"
+            GESTURE_SUPPORT_SCRIPT + ";"
+                    + "(function(){"
+                    + "if(window.__ssyoutubeMiniplayerGestureInstalled||!window.__ssyoutubeGestures){return;}"
                     + "window.__ssyoutubeMiniplayerGestureInstalled=true;"
-                    + "var SWIPE_THRESHOLD=48;"
-                    + "var tracking=false,startX=0,startY=0,activePlayer=null;"
+                    + "var gestures=window.__ssyoutubeGestures;"
                     + "function isWatchPage(){"
                     + "return (window.location.pathname||'')==='/watch';"
                     + "}"
                     + "window.__ssyoutubeResultsUrl=window.__ssyoutubeResultsUrl||"
                     + "(isWatchPage()?null:location.href);"
-                    + "function playerElement(target){"
-                    + "return target&&target.closest&&target.closest("
-                    + "'#movie_player,.html5-video-player,ytd-player,ytm-player');"
-                    + "}"
-                    + "function isFullscreen(){"
-                    + "return !!(document.fullscreenElement||document.webkitFullscreenElement||"
-                    + "document.querySelector('.ytp-fullscreen'));"
-                    + "}"
-                    + "function isPlaying(player){"
-                    + "var video=player&&player.querySelector&&player.querySelector('video');"
-                    + "return !!video&&!video.paused&&!video.ended;"
-                    + "}"
                     + "function trackResultsUrl(){"
                     + "if(!isWatchPage()){window.__ssyoutubeResultsUrl=location.href;}"
                     + "}"
                     + "document.addEventListener('yt-navigate-finish',trackResultsUrl,true);"
                     + "window.addEventListener('popstate',trackResultsUrl,true);"
-                    + "document.addEventListener('touchstart',function(e){"
-                    + "if(e.touches.length!==1||!isWatchPage()){tracking=false;activePlayer=null;return;}"
-                    + "var player=playerElement(e.target);"
-                    + "if(!player){tracking=false;activePlayer=null;return;}"
-                    + "tracking=true;"
-                    + "activePlayer=player;"
-                    + "startX=e.touches[0].clientX;"
-                    + "startY=e.touches[0].clientY;"
-                    + "},{passive:true,capture:true});"
-                    + "document.addEventListener('touchend',function(e){"
-                    + "if(!tracking){return;}"
-                    + "tracking=false;"
-                    + "var player=activePlayer;"
-                    + "activePlayer=null;"
+                    + "gestures.onVerticalSwipe(function(swipe){"
+                    + "if(swipe.dy<=0||!isWatchPage()){return;}"
                     + "if(!window.ssYouTubeNative||!window.ssYouTubeNative.minimize){return;}"
-                    + "var touch=e.changedTouches&&e.changedTouches[0];"
-                    + "if(!touch){return;}"
-                    + "var dy=touch.clientY-startY;"
-                    + "var dx=touch.clientX-startX;"
-                    + "if(dy<SWIPE_THRESHOLD||Math.abs(dx)>Math.abs(dy)){return;}"
-                    + "if(isFullscreen()||!isPlaying(player)){return;}"
+                    + "if(gestures.isFullscreen()||!gestures.isPlaying(swipe.player)){return;}"
                     + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'');"
-                    + "},{passive:true,capture:true});"
+                    + "});"
                     + "})()";
 
     /**

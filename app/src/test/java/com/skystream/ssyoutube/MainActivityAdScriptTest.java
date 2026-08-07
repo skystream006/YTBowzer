@@ -42,6 +42,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("buy\\s+(it\\s+)?now"));
         assertTrue(script.contains("shop\\s+now"));
         assertTrue(script.contains("visit\\s+site"));
+        assertTrue(script.contains("if(inComments(el)){continue;}"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
         assertTrue(script.contains("characterData:true"));
@@ -60,6 +61,7 @@ public class MainActivityAdScriptTest {
     public void removesPlayablesSections() {
         String script = MainActivity.PLAYABLES_CLEANUP_SCRIPT;
         assertTrue(script.contains("PlayablesCleanupInstalled"));
+        assertTrue(script.contains("if(inComments(el)){return false;}"));
         assertTrue(script.contains("playables?"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
@@ -69,6 +71,7 @@ public class MainActivityAdScriptTest {
     public void removesPostsSections() {
         String script = MainActivity.POSTS_CLEANUP_SCRIPT;
         assertTrue(script.contains("PostsCleanupInstalled"));
+        assertTrue(script.contains("if(inComments(el)){return false;}"));
         assertTrue(script.contains("==='posts'"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("addedNodes"));
@@ -98,6 +101,26 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("insertAdjacentElement('afterend',badge)"));
         assertTrue(script.contains("fetch(url,{credentials:'same-origin'})"));
         assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("if(inComments(avatar)){return;}"));
+        assertTrue(script.contains("MAX_ACTIVE_LOOKUPS=3"));
+        assertTrue(script.contains("enqueue(function(){"));
+        assertTrue(script.contains("lookupDone"));
+    }
+
+    @Test
+    public void keepsCommentRenderersOutOfCleanupScripts() {
+        assertTrue(MainActivity.COMMENTS_SELECTOR.contains("ytm-comment-thread-renderer"));
+        assertTrue(MainActivity.COMMENTS_SELECTOR.contains("ytm-comment-renderer"));
+        assertTrue(MainActivity.COMMENTS_SELECTOR.contains("ytm-engagement-panel"));
+        assertTrue(MainActivity.COMMENTS_SELECTOR.contains("ytd-comments"));
+        for (String script : new String[] {
+                MainActivity.BUY_NOW_CLEANUP_SCRIPT,
+                MainActivity.PLAYABLES_CLEANUP_SCRIPT,
+                MainActivity.POSTS_CLEANUP_SCRIPT,
+                MainActivity.SUBSCRIBER_COUNT_SCRIPT }) {
+            assertTrue(script.contains("function inComments(el)"));
+            assertTrue(script.contains(MainActivity.COMMENTS_SELECTOR));
+        }
     }
 
     @Test
@@ -108,11 +131,27 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("touchstart"));
         assertTrue(script.contains("touchend"));
         assertTrue(script.contains(".ytp-fullscreen-button"));
+        assertTrue(script.contains("button.fullscreen-icon"));
+        assertTrue(script.contains("requestFullscreen"));
+        assertTrue(script.contains("exitFullscreen"));
         assertTrue(script.contains("isFullscreen"));
         assertTrue(script.contains("isPlaying"));
         assertTrue(script.contains("dy<0&&!fullscreen"));
         assertTrue(script.contains("dy>0&&fullscreen"));
         assertTrue(script.contains("button.click()"));
+    }
+
+    @Test
+    public void tracksSwipesThroughMoveAndCancel() {
+        for (String script : new String[] {
+                MainActivity.FULLSCREEN_GESTURE_SCRIPT,
+                MainActivity.MINIPLAYER_GESTURE_SCRIPT }) {
+            assertTrue(script.contains("touchmove"));
+            assertTrue(script.contains("touchcancel"));
+            assertTrue(script.contains("composedPath"));
+            assertTrue(script.contains("window.innerHeight||800)*0.06"));
+            assertTrue(script.contains("onVerticalSwipe"));
+        }
     }
 
     @Test
@@ -123,6 +162,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("touchstart"));
         assertTrue(script.contains("touchend"));
         assertTrue(script.contains("isWatchPage"));
+        assertTrue(script.contains("swipe.dy<=0"));
         assertTrue(script.contains("pathname||'')==='/watch'"));
         assertTrue(script.contains("isFullscreen"));
         assertTrue(script.contains("isPlaying"));
