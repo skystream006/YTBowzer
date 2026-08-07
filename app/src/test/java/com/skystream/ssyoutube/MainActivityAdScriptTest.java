@@ -148,9 +148,13 @@ public class MainActivityAdScriptTest {
         assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("AppLogoInstalled"));
         assertTrue(script.contains("ytm-mobile-topbar-renderer .topbar-logo"));
+        assertTrue(script.contains("ytm-topbar-logo-renderer"));
+        assertTrue(script.contains("ytm-youtube-logo"));
         assertTrue(script.contains("ytd-topbar-logo-renderer"));
         assertTrue(script.contains("img[src*=\"yt_logo\"]"));
-        assertTrue(script.contains("location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
+        assertTrue(script.contains("LOGO_SRC=location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
+        assertTrue(script.contains("image.classList.contains(CLASS)&&image.src===LOGO_SRC"));
+        assertTrue(script.contains("styleImage(existing,height)"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("yt-navigate-finish"));
     }
