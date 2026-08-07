@@ -153,7 +153,9 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("ytd-topbar-logo-renderer"));
         assertTrue(script.contains("img[src*=\"yt_logo\"]"));
         assertTrue(script.contains("LOGO_SRC=location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
-        assertTrue(script.contains("image.classList.contains(CLASS)&&image.src===LOGO_SRC"));
+        assertTrue(script.contains("image.classList&&image.classList.contains(CLASS)"));
+        assertTrue(script.contains("replaceChild("));
+        assertTrue(script.contains("node.removeChild(children[i])"));
         assertTrue(script.contains("styleImage(existing,height)"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("yt-navigate-finish"));
