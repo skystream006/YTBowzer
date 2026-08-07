@@ -20,7 +20,9 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.view.ViewGroup;
@@ -452,6 +454,64 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     /**
+     * Lets the user swipe down on a playing video (while not fullscreen) to shrink it into a
+     * small picture-in-picture window, revealing the last visited results page (search/home)
+     * underneath, mirroring the native YouTube app's miniplayer gesture.
+     */
+    static final String MINIPLAYER_GESTURE_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerMiniplayerGestureInstalled){return;}"
+                    + "window.__ytbowzerMiniplayerGestureInstalled=true;"
+                    + "var SWIPE_THRESHOLD=48;"
+                    + "var tracking=false,startX=0,startY=0,activePlayer=null;"
+                    + "function isWatchPage(){"
+                    + "return (window.location.pathname||'')==='/watch';"
+                    + "}"
+                    + "window.__ytbowzerResultsUrl=window.__ytbowzerResultsUrl||"
+                    + "(isWatchPage()?null:location.href);"
+                    + "function playerElement(target){"
+                    + "return target&&target.closest&&target.closest("
+                    + "'#movie_player,.html5-video-player,ytd-player,ytm-player');"
+                    + "}"
+                    + "function isFullscreen(){"
+                    + "return !!(document.fullscreenElement||document.webkitFullscreenElement||"
+                    + "document.querySelector('.ytp-fullscreen'));"
+                    + "}"
+                    + "function isPlaying(player){"
+                    + "var video=player&&player.querySelector&&player.querySelector('video');"
+                    + "return !!video&&!video.paused&&!video.ended;"
+                    + "}"
+                    + "function trackResultsUrl(){"
+                    + "if(!isWatchPage()){window.__ytbowzerResultsUrl=location.href;}"
+                    + "}"
+                    + "document.addEventListener('yt-navigate-finish',trackResultsUrl,true);"
+                    + "window.addEventListener('popstate',trackResultsUrl,true);"
+                    + "document.addEventListener('touchstart',function(e){"
+                    + "if(e.touches.length!==1||!isWatchPage()){tracking=false;activePlayer=null;return;}"
+                    + "var player=playerElement(e.target);"
+                    + "if(!player){tracking=false;activePlayer=null;return;}"
+                    + "tracking=true;"
+                    + "activePlayer=player;"
+                    + "startX=e.touches[0].clientX;"
+                    + "startY=e.touches[0].clientY;"
+                    + "},{passive:true,capture:true});"
+                    + "document.addEventListener('touchend',function(e){"
+                    + "if(!tracking){return;}"
+                    + "tracking=false;"
+                    + "var player=activePlayer;"
+                    + "activePlayer=null;"
+                    + "if(!window.YtbowzerNative||!window.YtbowzerNative.minimize){return;}"
+                    + "var touch=e.changedTouches&&e.changedTouches[0];"
+                    + "if(!touch){return;}"
+                    + "var dy=touch.clientY-startY;"
+                    + "var dx=touch.clientX-startX;"
+                    + "if(dy<SWIPE_THRESHOLD||Math.abs(dx)>Math.abs(dy)){return;}"
+                    + "if(isFullscreen()||!isPlaying(player)){return;}"
+                    + "window.YtbowzerNative.minimize(window.__ytbowzerResultsUrl||'');"
+                    + "},{passive:true,capture:true});"
+                    + "})()";
+
+    /**
      * Extends how far ahead of the viewport lazy-loaded content is fetched, so roughly the
      * next two screens of search/feed results are preloaded before the user scrolls to them.
      */
@@ -491,7 +551,11 @@ public class MainActivity extends AppCompatActivity {
                     + "window.IntersectionObserver=PatchedIntersectionObserver;"
                     + "})()";
 
+    private static final String JS_INTERFACE_NAME = "YtbowzerNative";
+
     private WebView webView;
+    private WebView miniplayerWebView;
+    private View miniplayerContainer;
     private ViewGroup rootContainer;
     private ImageButton settingsButton;
     private SharedPreferences prefs;
@@ -520,44 +584,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setUserAgentString(Preferences.userAgent(desktopMode));
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setJavaScriptCanOpenWindowsAutomatically(false);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setSupportMultipleWindows(false);
-        settings.setSupportZoom(desktopMode);
-        settings.setBuiltInZoomControls(desktopMode);
-        settings.setDisplayZoomControls(false);
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
-        }
-
-        // Persist the session cookies so the user only has to sign in once.
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cookieManager.setAcceptThirdPartyCookies(webView, true);
-        }
-
-        webView.setWebViewClient(new YouTubeWebViewClient());
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onShowCustomView(View view, CustomViewCallback callback) {
-                showFullscreenView(view, callback);
-            }
-
-            @Override
-            public void onHideCustomView() {
-                hideFullscreenView();
-            }
-        });
+        configureWebView(webView);
 
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
@@ -583,6 +610,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         webView.onPause();
+        if (miniplayerWebView != null) {
+            miniplayerWebView.onPause();
+        }
         CookieManager.getInstance().flush();
     }
 
@@ -590,12 +620,28 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         webView.onResume();
+        if (miniplayerWebView != null) {
+            miniplayerWebView.onResume();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (miniplayerWebView != null) {
+            miniplayerWebView.destroy();
+            miniplayerWebView = null;
+        }
+        super.onDestroy();
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && fullscreenView != null) {
             hideFullscreenView();
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_BACK && miniplayerWebView != null) {
+            expandMiniplayer();
             return true;
         }
         if (keyCode == KeyEvent.KEYCODE_BACK && goBack()) {
@@ -638,6 +684,182 @@ public class MainActivity extends AppCompatActivity {
             fullscreenViewCallback.onCustomViewHidden();
             fullscreenViewCallback = null;
         }
+    }
+
+    /** Applies the shared WebView configuration used by both the primary and miniplayer views. */
+    @SuppressLint("SetJavaScriptEnabled")
+    private void configureWebView(WebView view) {
+        WebSettings settings = view.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setUserAgentString(Preferences.userAgent(desktopMode));
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setSupportMultipleWindows(false);
+        settings.setSupportZoom(desktopMode);
+        settings.setBuiltInZoomControls(desktopMode);
+        settings.setDisplayZoomControls(false);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            view.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+        }
+
+        // Persist the session cookies so the user only has to sign in once.
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(view, true);
+        }
+
+        view.addJavascriptInterface(new PipBridge(view), JS_INTERFACE_NAME);
+        view.setWebViewClient(new YouTubeWebViewClient());
+        view.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onShowCustomView(View customView, CustomViewCallback callback) {
+                showFullscreenView(customView, callback);
+            }
+
+            @Override
+            public void onHideCustomView() {
+                hideFullscreenView();
+            }
+        });
+    }
+
+    /**
+     * JavaScript bridge that lets the injected {@link #MINIPLAYER_GESTURE_SCRIPT} tell native
+     * code when the user has swiped down on a playing video. Bound per-WebView so a call from a
+     * WebView that isn't the currently active/primary one (e.g. a stale or backgrounded view) is
+     * ignored instead of silently acting on the wrong view.
+     */
+    private final class PipBridge {
+        private final WebView source;
+
+        PipBridge(WebView source) {
+            this.source = source;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void minimize(final String resultsUrl) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (source != webView) {
+                        return;
+                    }
+                    enterMiniplayer(resultsUrl);
+                }
+            });
+        }
+    }
+
+    /**
+     * Shrinks the currently playing video into a small picture-in-picture window and shows
+     * the cached results page (the page the user was on before opening the video) underneath.
+     */
+    private void enterMiniplayer(String resultsUrl) {
+        if (miniplayerWebView != null || fullscreenView != null) {
+            return;
+        }
+        if (resultsUrl == null || resultsUrl.isEmpty()) {
+            return;
+        }
+
+        WebView videoView = webView;
+        rootContainer.removeView(videoView);
+
+        WebView resultsView = new WebView(this);
+        configureWebView(resultsView);
+        rootContainer.addView(resultsView, 0, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        resultsView.loadUrl(resultsUrl);
+        webView = resultsView;
+
+        FrameLayout container = new FrameLayout(this);
+        container.setBackgroundResource(R.drawable.bg_miniplayer);
+        container.addView(videoView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        container.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                expandMiniplayer();
+            }
+        });
+
+        int closeSize = getResources().getDimensionPixelSize(R.dimen.miniplayer_close_size);
+        ImageButton closeButton = new ImageButton(this);
+        closeButton.setImageResource(R.drawable.ic_close);
+        closeButton.setBackgroundResource(R.drawable.bg_settings_button);
+        closeButton.setContentDescription(getString(R.string.close_miniplayer));
+        closeButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        FrameLayout.LayoutParams closeParams = new FrameLayout.LayoutParams(closeSize, closeSize);
+        closeParams.gravity = Gravity.TOP | Gravity.END;
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                closeMiniplayer();
+            }
+        });
+        container.addView(closeButton, closeParams);
+
+        int width = getResources().getDimensionPixelSize(R.dimen.miniplayer_width);
+        int height = getResources().getDimensionPixelSize(R.dimen.miniplayer_height);
+        int margin = getResources().getDimensionPixelSize(R.dimen.miniplayer_margin);
+        FrameLayout.LayoutParams containerParams = new FrameLayout.LayoutParams(width, height);
+        containerParams.gravity = Gravity.BOTTOM | Gravity.END;
+        containerParams.rightMargin = margin;
+        containerParams.bottomMargin = margin;
+        rootContainer.addView(container, containerParams);
+
+        miniplayerWebView = videoView;
+        miniplayerContainer = container;
+        settingsButton.bringToFront();
+        updateSettingsButton(resultsView.getUrl());
+    }
+
+    /** Restores the miniplayer video to fullscreen, discarding the temporary results page. */
+    private void expandMiniplayer() {
+        if (miniplayerWebView == null) {
+            return;
+        }
+        WebView videoView = miniplayerWebView;
+        View container = miniplayerContainer;
+        miniplayerWebView = null;
+        miniplayerContainer = null;
+
+        ((ViewGroup) videoView.getParent()).removeView(videoView);
+        rootContainer.removeView(container);
+
+        WebView resultsView = webView;
+        rootContainer.removeView(resultsView);
+        resultsView.destroy();
+
+        webView = videoView;
+        rootContainer.addView(videoView, 0, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        settingsButton.bringToFront();
+        updateSettingsButton(videoView.getUrl());
+    }
+
+    /** Dismisses the miniplayer video entirely, keeping the results page as the primary view. */
+    private void closeMiniplayer() {
+        if (miniplayerWebView == null) {
+            return;
+        }
+        WebView videoView = miniplayerWebView;
+        View container = miniplayerContainer;
+        miniplayerWebView = null;
+        miniplayerContainer = null;
+
+        rootContainer.removeView(container);
+        videoView.stopLoading();
+        videoView.destroy();
+        settingsButton.bringToFront();
+        updateSettingsButton(webView.getUrl());
     }
 
     private boolean goBack() {
@@ -913,6 +1135,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
+            view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
         }
 
@@ -928,6 +1151,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
+            view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             CookieManager.getInstance().flush();
         }

@@ -115,6 +115,22 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void minimizesToPipOnDownwardVideoSwipe() {
+        String script = MainActivity.MINIPLAYER_GESTURE_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("MiniplayerGestureInstalled"));
+        assertTrue(script.contains("touchstart"));
+        assertTrue(script.contains("touchend"));
+        assertTrue(script.contains("isWatchPage"));
+        assertTrue(script.contains("pathname||'')==='/watch'"));
+        assertTrue(script.contains("isFullscreen"));
+        assertTrue(script.contains("isPlaying"));
+        assertTrue(script.contains("yt-navigate-finish"));
+        assertTrue(script.contains("__ytbowzerResultsUrl"));
+        assertTrue(script.contains("window.YtbowzerNative.minimize"));
+    }
+
+    @Test
     public void preloadsUpcomingResultsAheadOfScroll() {
         String script = MainActivity.RESULTS_PRELOAD_SCRIPT;
         assertTrue(script.startsWith("(function"));
