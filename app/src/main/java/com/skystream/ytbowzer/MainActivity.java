@@ -396,6 +396,101 @@ public class MainActivity extends AppCompatActivity {
                     + "}).observe(document.documentElement,{childList:true,subtree:true});"
                     + "})()";
 
+    /**
+     * Lets the user swipe up on a playing video to enter fullscreen and swipe down while
+     * fullscreen to exit it, mirroring the native YouTube app's gesture behavior.
+     */
+    static final String FULLSCREEN_GESTURE_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerFullscreenGestureInstalled){return;}"
+                    + "window.__ytbowzerFullscreenGestureInstalled=true;"
+                    + "var SWIPE_THRESHOLD=48;"
+                    + "var tracking=false,startX=0,startY=0,activePlayer=null;"
+                    + "function playerElement(target){"
+                    + "return target&&target.closest&&target.closest("
+                    + "'#movie_player,.html5-video-player,ytd-player,ytm-player');"
+                    + "}"
+                    + "function isFullscreen(){"
+                    + "return !!(document.fullscreenElement||document.webkitFullscreenElement||"
+                    + "document.querySelector('.ytp-fullscreen'));"
+                    + "}"
+                    + "function fullscreenButton(){"
+                    + "return document.querySelector('.ytp-fullscreen-button');"
+                    + "}"
+                    + "function isPlaying(player){"
+                    + "var video=player&&player.querySelector&&player.querySelector('video');"
+                    + "return !!video&&!video.paused&&!video.ended;"
+                    + "}"
+                    + "document.addEventListener('touchstart',function(e){"
+                    + "if(e.touches.length!==1){tracking=false;activePlayer=null;return;}"
+                    + "var player=playerElement(e.target);"
+                    + "if(!player){tracking=false;activePlayer=null;return;}"
+                    + "tracking=true;"
+                    + "activePlayer=player;"
+                    + "startX=e.touches[0].clientX;"
+                    + "startY=e.touches[0].clientY;"
+                    + "},{passive:true,capture:true});"
+                    + "document.addEventListener('touchend',function(e){"
+                    + "if(!tracking){return;}"
+                    + "tracking=false;"
+                    + "var player=activePlayer;"
+                    + "activePlayer=null;"
+                    + "var touch=e.changedTouches&&e.changedTouches[0];"
+                    + "if(!touch){return;}"
+                    + "var dy=touch.clientY-startY;"
+                    + "var dx=touch.clientX-startX;"
+                    + "if(Math.abs(dy)<SWIPE_THRESHOLD||Math.abs(dx)>Math.abs(dy)){return;}"
+                    + "var button=fullscreenButton();"
+                    + "if(!button){return;}"
+                    + "var fullscreen=isFullscreen();"
+                    + "if(dy<0&&!fullscreen&&isPlaying(player)){"
+                    + "button.click();"
+                    + "}else if(dy>0&&fullscreen){"
+                    + "button.click();"
+                    + "}"
+                    + "},{passive:true,capture:true});"
+                    + "})()";
+
+    /**
+     * Extends how far ahead of the viewport lazy-loaded content is fetched, so roughly the
+     * next two screens of search/feed results are preloaded before the user scrolls to them.
+     */
+    static final String RESULTS_PRELOAD_SCRIPT =
+            "(function(){"
+                    + "if(window.__ytbowzerResultsPreloadInstalled){return;}"
+                    + "window.__ytbowzerResultsPreloadInstalled=true;"
+                    + "var PRELOAD_SCREENS=2;"
+                    + "var NativeIntersectionObserver=window.IntersectionObserver;"
+                    + "if(!NativeIntersectionObserver){return;}"
+                    + "function expandBottomMargin(rootMargin){"
+                    + "var extra=Math.round((window.innerHeight||800)*PRELOAD_SCREENS);"
+                    + "var parts=(rootMargin||'0px').trim().split(/\\s+/);"
+                    + "if(parts.length===1){parts=[parts[0],parts[0],parts[0],parts[0]];}"
+                    + "else if(parts.length===2){parts=[parts[0],parts[1],parts[0],parts[1]];}"
+                    + "else if(parts.length===3){parts=[parts[0],parts[1],parts[2],parts[1]];}"
+                    + "var bottom=parseFloat(parts[2])||0;"
+                    + "var unit=/[a-z%]+$/i.exec(parts[2]||'0px');"
+                    + "unit=unit?unit[0]:'px';"
+                    + "if(unit!=='px'){return parts.join(' ');}"
+                    + "parts[2]=(bottom+extra)+'px';"
+                    + "return parts.join(' ');"
+                    + "}"
+                    + "function PatchedIntersectionObserver(callback,options){"
+                    + "options=options||{};"
+                    + "var patched={};"
+                    + "for(var key in options){"
+                    + "if(Object.prototype.hasOwnProperty.call(options,key)){patched[key]=options[key];}"
+                    + "}"
+                    + "patched.rootMargin=expandBottomMargin(options.rootMargin);"
+                    + "return Reflect.construct(NativeIntersectionObserver,[callback,patched],"
+                    + "new.target||PatchedIntersectionObserver);"
+                    + "}"
+                    + "PatchedIntersectionObserver.prototype=Object.create("
+                    + "NativeIntersectionObserver.prototype,"
+                    + "{constructor:{value:PatchedIntersectionObserver,writable:true,configurable:true}});"
+                    + "window.IntersectionObserver=PatchedIntersectionObserver;"
+                    + "})()";
+
     private WebView webView;
     private ViewGroup rootContainer;
     private ImageButton settingsButton;
@@ -817,6 +912,8 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
+            view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
+            view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
         }
 
         @Override
@@ -830,6 +927,8 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(POSTS_CLEANUP_SCRIPT, null);
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
+            view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
+            view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             CookieManager.getInstance().flush();
         }
 
