@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ssYoutube</string>
+    <string name="app_name">ssYouTube</string>
     <string name="settings">Settings</string>
     <string name="close">Close</string>
     <string name="preferences">Preferences</string>

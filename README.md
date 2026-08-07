@@ -1,4 +1,4 @@
-# ssYoutube
+# ssYouTube
 
 A minimal Android app that shows the YouTube **mobile** website in a full-screen WebView,
 keeps you signed in, and blocks advertising/tracking requests.
