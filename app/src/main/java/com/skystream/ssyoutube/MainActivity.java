@@ -690,10 +690,54 @@ public class MainActivity extends AppCompatActivity {
                     + "image.parentElement.replaceChild("
                     + "createLogoImage(image.offsetHeight||24),image);"
                     + "}"
+                    + "function positionOverlay(node,overlay){"
+                    + "var rect=node.getBoundingClientRect();"
+                    + "var parentRect=node.parentElement.getBoundingClientRect();"
+                    + "overlay.style.position='absolute';"
+                    + "overlay.style.top=(rect.top-parentRect.top)+'px';"
+                    + "overlay.style.left=(rect.left-parentRect.left)+'px';"
+                    + "overlay.style.width=rect.width+'px';"
+                    + "overlay.style.height=rect.height+'px';"
+                    + "overlay.style.pointerEvents='none';"
+                    + "overlay.style.margin='0';"
+                    + "}"
+                    // Mobile masthead custom elements (ytm-youtube-logo, ytm-topbar-logo-renderer)
+                    // attach an open shadow root and render their visible logo entirely inside
+                    // it, unlike desktop's ytd-* equivalents which use plain light DOM.
+                    // Appending a replacement image as a light-DOM child of such a host (the
+                    // desktop-style approach below) never becomes visible because these hosts
+                    // define no <slot> to project it into. Instead the host itself is made
+                    // transparent (but left in place and clickable, so the home link keeps
+                    // working) and a positioned overlay image is inserted as a light-DOM
+                    // sibling, sized and placed to match the host's on-screen box.
+                    + "function replaceShadowHost(node){"
+                    + "var parent=node.parentElement;"
+                    + "if(!parent){return;}"
+                    + "var rect=node.getBoundingClientRect();"
+                    // A zero-size box means the host has not been laid out yet (e.g. right
+                    // after insertion); skip for now rather than creating a malformed overlay.
+                    // The periodic applyLogos() re-run (interval/mutation/navigation hooks
+                    // below) retries this shortly after, once layout has settled.
+                    + "if(!rect.width||!rect.height){return;}"
+                    + "if(getComputedStyle(parent).position==='static'){"
+                    + "parent.style.position='relative';"
+                    + "}"
+                    + "node.style.opacity='0';"
+                    + "var overlay=node.__ssyoutubeOverlay;"
+                    + "if(!overlay||!overlay.isConnected){"
+                    + "overlay=createLogoImage(rect.height||24);"
+                    + "node.__ssyoutubeOverlay=overlay;"
+                    + "parent.appendChild(overlay);"
+                    + "}else{"
+                    + "styleImage(overlay,rect.height||24);"
+                    + "}"
+                    + "positionOverlay(node,overlay);"
+                    + "}"
                     + "function replaceContainer(node){"
                     + "if(!node.querySelector){return;}"
                     + "if(node.parentElement&&node.parentElement.closest"
                     + "&&node.parentElement.closest(CONTAINERS)){return;}"
+                    + "if(node.shadowRoot){replaceShadowHost(node);return;}"
                     + "var height=node.offsetHeight||24;"
                     + "var children=asArray(node.children);"
                     + "for(var i=children.length-1;i>=0;i--){"
