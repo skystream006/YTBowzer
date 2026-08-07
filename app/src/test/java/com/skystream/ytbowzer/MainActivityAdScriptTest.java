@@ -1,5 +1,6 @@
 package com.skystream.ytbowzer;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -139,5 +140,30 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("window.IntersectionObserver"));
         assertTrue(script.contains("rootMargin"));
         assertTrue(script.contains("expandBottomMargin"));
+    }
+
+    @Test
+    public void replacesYouTubeLogosWithTheAppLogo() {
+        String script = MainActivity.APP_LOGO_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("AppLogoInstalled"));
+        assertTrue(script.contains("ytm-mobile-topbar-renderer .topbar-logo"));
+        assertTrue(script.contains("ytd-topbar-logo-renderer"));
+        assertTrue(script.contains("img[src*=\"yt_logo\"]"));
+        assertTrue(script.contains("location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
+        assertTrue(script.contains("MutationObserver"));
+        assertTrue(script.contains("yt-navigate-finish"));
+    }
+
+    @Test
+    public void recognisesAppLogoRequests() {
+        assertTrue(MainActivity.isAppLogoRequest(
+                "https://m.youtube.com" + MainActivity.APP_LOGO_PATH));
+        assertTrue(MainActivity.isAppLogoRequest(
+                "https://www.youtube.com" + MainActivity.APP_LOGO_PATH + "?v=1"));
+        assertFalse(MainActivity.isAppLogoRequest("https://m.youtube.com/"));
+        assertFalse(MainActivity.isAppLogoRequest(
+                "https://m.youtube.com/other" + MainActivity.APP_LOGO_PATH));
+        assertFalse(MainActivity.isAppLogoRequest(null));
     }
 }

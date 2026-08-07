@@ -4,6 +4,9 @@ import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -32,8 +35,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Hosts a single WebView that shows the YouTube mobile site, keeps the sign-in session
@@ -551,7 +558,81 @@ public class MainActivity extends AppCompatActivity {
                     + "window.IntersectionObserver=PatchedIntersectionObserver;"
                     + "})()";
 
+    /**
+     * Same-origin path the WebView requests for the bundled app logo. Requests to it never
+     * reach the network, they are answered from the app resources by
+     * {@link YouTubeWebViewClient#shouldInterceptRequest}.
+     */
+    static final String APP_LOGO_PATH = "/ytbowzer_app_logo.jpg";
+
+    /** Swaps the YouTube wordmark on the page for the bundled app logo. */
+    static final String APP_LOGO_SCRIPT =
+            "(function(){"
+                    + "var CLASS='ytbowzer-app-logo';"
+                    + "var CONTAINERS='ytm-mobile-topbar-renderer .topbar-logo,"
+                    + ".mobile-topbar-header-logo,ytm-logo,ytd-topbar-logo-renderer,ytd-logo,"
+                    + "a#logo,#logo-icon';"
+                    + "var IMAGES='img[src*=\"yt_logo\"],img[src*=\"youtube_logo\"],"
+                    + "img[src*=\"ytl_logo\"]';"
+                    + "function asArray(list){return Array.prototype.slice.call(list);}"
+                    + "function logoSrc(){return location.origin+'" + APP_LOGO_PATH + "';}"
+                    + "function replaceImage(image){"
+                    + "if(!image.classList||image.classList.contains(CLASS)){return;}"
+                    + "image.classList.add(CLASS);"
+                    + "image.removeAttribute('srcset');"
+                    + "image.src=logoSrc();"
+                    + "}"
+                    + "function replaceContainer(node){"
+                    + "if(!node.querySelector||node.querySelector('img.'+CLASS)){return;}"
+                    + "if(node.parentElement&&node.parentElement.closest"
+                    + "&&node.parentElement.closest(CONTAINERS)){return;}"
+                    + "var height=node.offsetHeight||24;"
+                    + "var children=asArray(node.children);"
+                    + "for(var i=0;i<children.length;i++){"
+                    + "if(children[i].style){children[i].style.display='none';}"
+                    + "}"
+                    + "var image=document.createElement('img');"
+                    + "image.className=CLASS;"
+                    + "image.alt='YouTube';"
+                    + "image.src=logoSrc();"
+                    + "image.style.height=height+'px';"
+                    + "image.style.width='auto';"
+                    + "image.style.display='inline-block';"
+                    + "image.style.objectFit='contain';"
+                    + "node.appendChild(image);"
+                    + "}"
+                    + "function applyLogos(root){"
+                    + "if(!root){return;}"
+                    + "var containers=root.querySelectorAll?asArray(root.querySelectorAll(CONTAINERS)):[];"
+                    + "if(root.matches&&root.matches(CONTAINERS)){containers.push(root);}"
+                    + "for(var i=0;i<containers.length;i++){replaceContainer(containers[i]);}"
+                    + "var images=root.querySelectorAll?asArray(root.querySelectorAll(IMAGES)):[];"
+                    + "if(root.matches&&root.matches(IMAGES)){images.push(root);}"
+                    + "for(var j=0;j<images.length;j++){replaceImage(images[j]);}"
+                    + "}"
+                    + "applyLogos(document);"
+                    + "if(window.__ytbowzerAppLogoInstalled){return;}"
+                    + "window.__ytbowzerAppLogoInstalled=true;"
+                    + "document.addEventListener('yt-navigate-finish',function(){"
+                    + "applyLogos(document);"
+                    + "},true);"
+                    + "new MutationObserver(function(mutations){"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var node=mutations[i].addedNodes[j];"
+                    + "if(node.nodeType===1){applyLogos(node);}"
+                    + "}"
+                    + "}"
+                    + "}).observe(document.documentElement,{childList:true,subtree:true});"
+                    + "setInterval(function(){applyLogos(document);},1000);"
+                    + "})()";
+
+    /** Height the bundled logo is downscaled to before it is handed to the WebView. */
+    private static final int APP_LOGO_HEIGHT_PX = 96;
+
     private static final String JS_INTERFACE_NAME = "YtbowzerNative";
+
+    private final Map<Integer, byte[]> appLogoCache = new HashMap<>();
 
     private WebView webView;
     private WebView miniplayerWebView;
@@ -1081,11 +1162,73 @@ public class MainActivity extends AppCompatActivity {
         return Preferences.homeUrl(desktopMode);
     }
 
+    /**
+     * Decodes the bundled logo once per theme, downscaled to roughly the size the page
+     * renders it at, and keeps the encoded bytes around for later requests.
+     *
+     * @param resource the drawable holding the logo for the active theme
+     * @return the encoded PNG bytes of the downscaled logo
+     */
+    private synchronized byte[] appLogoBytes(int resource) {
+        byte[] cached = appLogoCache.get(resource);
+        if (cached != null) {
+            return cached;
+        }
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(getResources(), resource, bounds);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 1;
+        while (bounds.outHeight / (options.inSampleSize * 2) >= APP_LOGO_HEIGHT_PX) {
+            options.inSampleSize *= 2;
+        }
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resource, options);
+        ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+        if (bitmap != null) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, encoded);
+            bitmap.recycle();
+        }
+        byte[] bytes = encoded.toByteArray();
+        appLogoCache.put(resource, bytes);
+        return bytes;
+    }
+
+    /**
+     * @param url a request URL seen by the WebView
+     * @return true when the request is the WebView asking for the bundled app logo
+     */
+    static boolean isAppLogoRequest(String url) {
+        if (url == null) {
+            return false;
+        }
+        String lower = url.toLowerCase(Locale.US);
+        if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
+            return false;
+        }
+        int pathStart = lower.indexOf('/', lower.indexOf("://") + 3);
+        if (pathStart < 0) {
+            return false;
+        }
+        int pathEnd = lower.length();
+        for (int i = pathStart; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            if (c == '?' || c == '#') {
+                pathEnd = i;
+                break;
+            }
+        }
+        return lower.substring(pathStart, pathEnd).equals(APP_LOGO_PATH);
+    }
+
     private class YouTubeWebViewClient extends WebViewClient {
 
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-            if (AdBlocker.isAd(request.getUrl().toString())) {
+            String url = request.getUrl().toString();
+            if (isAppLogoRequest(url)) {
+                return appLogoResponse();
+            }
+            if (AdBlocker.isAd(url)) {
                 return emptyResponse();
             }
             return super.shouldInterceptRequest(view, request);
@@ -1094,6 +1237,9 @@ public class MainActivity extends AppCompatActivity {
         @SuppressWarnings("deprecation")
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+            if (isAppLogoRequest(url)) {
+                return appLogoResponse();
+            }
             if (AdBlocker.isAd(url)) {
                 return emptyResponse();
             }
@@ -1137,6 +1283,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
             view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
+            view.evaluateJavascript(APP_LOGO_SCRIPT, null);
         }
 
         @Override
@@ -1153,7 +1300,23 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
             view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
+            view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             CookieManager.getInstance().flush();
+        }
+
+        private WebResourceResponse appLogoResponse() {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Cache-Control", "no-cache");
+            headers.put("Access-Control-Allow-Origin", "*");
+            return new WebResourceResponse("image/png", null, 200, "OK", headers,
+                    new ByteArrayInputStream(appLogoBytes(appLogoResource())));
+        }
+
+        private int appLogoResource() {
+            int nightMode = getResources().getConfiguration().uiMode
+                    & Configuration.UI_MODE_NIGHT_MASK;
+            return nightMode == Configuration.UI_MODE_NIGHT_YES
+                    ? R.drawable.app_logo_dark : R.drawable.app_logo_light;
         }
 
         private WebResourceResponse emptyResponse() {
