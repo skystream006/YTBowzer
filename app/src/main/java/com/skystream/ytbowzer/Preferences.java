@@ -60,6 +60,9 @@ public final class Preferences {
             return homeUrl(desktopMode);
         }
         int authorityStart = lower.indexOf("://") + 3;
+        if (authorityStart >= url.length()) {
+            return homeUrl(desktopMode);
+        }
         int authorityEnd = url.length();
         for (int i = authorityStart; i < url.length(); i++) {
             char c = url.charAt(i);

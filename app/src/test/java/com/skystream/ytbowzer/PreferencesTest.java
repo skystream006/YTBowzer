@@ -34,6 +34,7 @@ public class PreferencesTest {
     public void siteModeFallsBackToHomeWithoutCurrentPage() {
         assertEquals("https://m.youtube.com/", Preferences.siteModeUrl(null, false));
         assertEquals("https://www.youtube.com/", Preferences.siteModeUrl("about:blank", true));
+        assertEquals("https://m.youtube.com/", Preferences.siteModeUrl("https://", false));
     }
 
     @Test
