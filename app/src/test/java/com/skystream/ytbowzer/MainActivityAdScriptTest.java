@@ -98,4 +98,30 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("fetch(url,{credentials:'same-origin'})"));
         assertTrue(script.contains("MutationObserver"));
     }
+
+    @Test
+    public void togglesFullscreenOnVerticalVideoSwipes() {
+        String script = MainActivity.FULLSCREEN_GESTURE_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("FullscreenGestureInstalled"));
+        assertTrue(script.contains("touchstart"));
+        assertTrue(script.contains("touchend"));
+        assertTrue(script.contains(".ytp-fullscreen-button"));
+        assertTrue(script.contains("isFullscreen"));
+        assertTrue(script.contains("isPlaying"));
+        assertTrue(script.contains("dy<0&&!fullscreen"));
+        assertTrue(script.contains("dy>0&&fullscreen"));
+        assertTrue(script.contains("button.click()"));
+    }
+
+    @Test
+    public void preloadsUpcomingResultsAheadOfScroll() {
+        String script = MainActivity.RESULTS_PRELOAD_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("ResultsPreloadInstalled"));
+        assertTrue(script.contains("PRELOAD_SCREENS=2"));
+        assertTrue(script.contains("window.IntersectionObserver"));
+        assertTrue(script.contains("rootMargin"));
+        assertTrue(script.contains("expandBottomMargin"));
+    }
 }
