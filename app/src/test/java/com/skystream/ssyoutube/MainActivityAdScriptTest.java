@@ -162,6 +162,16 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void replacesThePlayerWatermarkLogo() {
+        String script = MainActivity.APP_LOGO_SCRIPT;
+        assertTrue(script.contains(".ytp-watermark"));
+        assertTrue(script.contains(".ytm-watermark"));
+        assertTrue(script.contains(".branding-img-container"));
+        assertTrue(script.contains("img[src*=\"watermark\"]"));
+        assertTrue(script.contains("img.branding-img"));
+    }
+
+    @Test
     public void recognisesAppLogoRequests() {
         assertTrue(MainActivity.isAppLogoRequest(
                 "https://m.youtube.com" + MainActivity.APP_LOGO_PATH));
