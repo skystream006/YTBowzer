@@ -172,6 +172,33 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void miniplayerShowsOnlyTheVideoScaledToFit() {
+        String script = MainActivity.MINIPLAYER_VIEW_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("ssyoutube-miniplayer-style"));
+        assertTrue(script.contains("__ssyoutubeMiniplayerViewActive=true"));
+        assertTrue(script.contains("overflow:hidden!important"));
+        assertTrue(script.contains("width:100vw!important"));
+        assertTrue(script.contains("height:100vh!important"));
+        assertTrue(script.contains("object-fit:contain!important"));
+        assertTrue(script.contains(".ytp-chrome-bottom"));
+        assertTrue(script.contains("display:none!important"));
+        assertTrue(script.contains("ssyoutube-miniplayer-player"));
+        assertTrue(script.contains("setInterval(apply,500)"));
+    }
+
+    @Test
+    public void miniplayerViewResetRestoresThePage() {
+        String script = MainActivity.MINIPLAYER_VIEW_RESET_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("__ssyoutubeMiniplayerViewActive=false"));
+        assertTrue(script.contains("clearInterval"));
+        assertTrue(script.contains("removeChild(style)"));
+        assertTrue(script.contains("classList.remove('ssyoutube-miniplayer')"));
+        assertTrue(script.contains("classList.remove('ssyoutube-miniplayer-player')"));
+    }
+
+    @Test
     public void preloadsUpcomingResultsAheadOfScroll() {
         String script = MainActivity.RESULTS_PRELOAD_SCRIPT;
         assertTrue(script.startsWith("(function"));
