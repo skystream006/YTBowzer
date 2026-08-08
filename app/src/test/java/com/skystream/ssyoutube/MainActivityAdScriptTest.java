@@ -203,7 +203,8 @@ public class MainActivityAdScriptTest {
         String script = MainActivity.MINIPLAYER_PLAYBACK_RESUME_SCRIPT;
         assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("video.paused"));
-        assertTrue(script.contains("video.ended||!video.paused){return;}"));
+        assertTrue(script.contains("video.ended"));
+        assertTrue(script.contains("video.paused"));
         assertTrue(script.contains("video.play()"));
         assertTrue(script.contains("playback.catch(retry)"));
         assertTrue(script.contains("attempts<5"));

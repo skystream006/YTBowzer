@@ -709,7 +709,7 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "if(video.ended||!video.paused){return;}"
                     + "var playback=video.play();"
-                    + "if(playback&&playback.catch){playback.catch(retry);}else{retry();}"
+                    + "if(playback&&playback.catch){playback.catch(retry);}"
                     + "}"
                     + "resume();"
                     + "})()";
