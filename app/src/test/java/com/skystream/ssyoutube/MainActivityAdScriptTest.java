@@ -252,7 +252,9 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("function hideShadowContent(shadow)"));
         assertTrue(script.contains("if(node.shadowRoot){hideShadowContent(node.shadowRoot);}"));
         assertTrue(script.contains("opacity','0','important'"));
-        assertTrue(script.contains("visibility','hidden','important'"));
+        // Only opacity is touched (not visibility/display) so hidden content stays
+        // hit-testable and a tap still reaches the original click handler (e.g. the home link).
+        assertTrue(script.contains(":host>*{opacity:0 !important;}"));
     }
 
     @Test

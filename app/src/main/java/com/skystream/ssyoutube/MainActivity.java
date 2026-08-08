@@ -774,27 +774,28 @@ public class MainActivity extends AppCompatActivity {
                     // Hides everything a container currently renders internally, without caring
                     // whether that content is an <img>, inline SVG, or something else: this is
                     // what makes painting the container's own background reliable regardless of
-                    // how YouTube happens to draw the logo this week.
+                    // how YouTube happens to draw the logo this week. Only opacity is touched
+                    // (not visibility/display), so the hidden content stays hit-testable and a
+                    // tap still reaches whatever click handler (e.g. the home link) it carries.
                     + "function hideLightChildren(node){"
                     + "var children=asArray(node.children);"
                     + "for(var i=0;i<children.length;i++){"
-                    + "var child=children[i];"
-                    + "child.style.setProperty('opacity','0','important');"
-                    + "child.style.setProperty('visibility','hidden','important');"
+                    + "children[i].style.setProperty('opacity','0','important');"
                     + "}"
                     + "}"
                     // Mobile masthead custom elements (ytm-youtube-logo, ytm-topbar-logo-renderer)
                     // attach an open shadow root and render their logo entirely inside it, where
                     // regular element styling from the light DOM cannot reach. A small <style>
-                    // sheet inserted into the shadow root itself hides everything it renders,
-                    // leaving the host's own background (painted by paintContainer below) as the
-                    // only visible thing.
+                    // sheet inserted into the shadow root itself (scoped to its direct children,
+                    // so it never hides itself) hides everything the root renders, leaving the
+                    // host's own background (painted by paintContainer below) as the only
+                    // visible thing.
                     + "function hideShadowContent(shadow){"
-                    + "var style=shadow.getElementById?shadow.getElementById(HIDE_STYLE_ID):null;"
+                    + "var style=shadow.querySelector?shadow.querySelector('#'+HIDE_STYLE_ID):null;"
                     + "if(style){return;}"
                     + "style=document.createElement('style');"
                     + "style.id=HIDE_STYLE_ID;"
-                    + "style.textContent='*{opacity:0 !important;visibility:hidden !important;}';"
+                    + "style.textContent=':host>*{opacity:0 !important;}';"
                     + "shadow.appendChild(style);"
                     + "}"
                     + "function paintContainer(node){"
