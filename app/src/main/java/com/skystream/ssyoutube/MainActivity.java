@@ -696,6 +696,10 @@ public class MainActivity extends AppCompatActivity {
     static final String MINIPLAYER_PLAYBACK_RESUME_SCRIPT =
             "(function(){"
                     + "var attempts=0,lookupAttempts=0;"
+                    + "function retry(){"
+                    + "attempts++;"
+                    + "if(attempts<5){setTimeout(resume,250);}"
+                    + "}"
                     + "function resume(){"
                     + "var video=document.querySelector('video');"
                     + "if(!video){"
@@ -705,9 +709,7 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "if(video.ended||!video.paused){return;}"
                     + "var playback=video.play();"
-                    + "if(playback&&playback.catch){playback.catch(function(){});}"
-                    + "attempts++;"
-                    + "if(attempts<5){setTimeout(resume,250);}"
+                    + "if(playback&&playback.catch){playback.catch(retry);}else{retry();}"
                     + "}"
                     + "resume();"
                     + "})()";

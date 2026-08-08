@@ -205,6 +205,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("video.paused"));
         assertTrue(script.contains("video.ended||!video.paused){return;}"));
         assertTrue(script.contains("video.play()"));
+        assertTrue(script.contains("playback.catch(retry)"));
         assertTrue(script.contains("attempts<5"));
         assertTrue(script.contains("setTimeout(resume,250)"));
     }
