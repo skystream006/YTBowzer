@@ -614,8 +614,9 @@ public class MainActivity extends AppCompatActivity {
      * Strips the watch page down to just the video while it is shown in the miniplayer: the
      * player is pinned over the whole (small) viewport, the video is scaled to fit inside it
      * without cropping, and the surrounding page chrome plus the player's own controls and
-     * end-screen overlays are hidden. The class is re-applied on a short interval because
-     * YouTube re-creates the player element on navigation.
+     * end-screen overlays are hidden. Player replacement is tracked from DOM insertions rather
+     * than repeatedly searching the entire page, which avoids periodic main-thread work while
+     * the video is playing.
      */
     static final String MINIPLAYER_VIEW_SCRIPT =
             "(function(){"
@@ -656,33 +657,54 @@ public class MainActivity extends AppCompatActivity {
                     + "style.textContent=CSS;"
                     + "head.appendChild(style);"
                     + "}"
+                    + "function playerFrom(root){"
+                    + "if(!root){return null;}"
+                    + "if(root.matches&&root.matches(PLAYER_SELECTOR)){return root;}"
+                    + "return root.querySelector?root.querySelector(PLAYER_SELECTOR):null;"
+                    + "}"
+                    + "function setPlayer(player){"
+                    + "var previous=window.__ssyoutubeMiniplayerPlayer;"
+                    + "if(previous===player){return;}"
+                    + "if(previous){previous.classList.remove('ssyoutube-miniplayer-player');}"
+                    + "window.__ssyoutubeMiniplayerPlayer=player||null;"
+                    + "if(player){player.classList.add('ssyoutube-miniplayer-player');}"
+                    + "}"
                     + "function apply(){"
                     + "if(!window.__ssyoutubeMiniplayerViewActive){return;}"
                     + "ensureStyle();"
                     + "document.documentElement.classList.add('ssyoutube-miniplayer');"
-                    + "var players=document.querySelectorAll(PLAYER_SELECTOR);"
-                    + "var player=players.length?players[0]:null;"
-                    + "var marked=document.querySelectorAll('.ssyoutube-miniplayer-player');"
-                    + "for(var i=0;i<marked.length;i++){"
-                    + "if(marked[i]!==player){marked[i].classList.remove('ssyoutube-miniplayer-player');}"
+                    + "setPlayer(document.querySelector(PLAYER_SELECTOR));"
                     + "}"
-                    + "if(player){player.classList.add('ssyoutube-miniplayer-player');}"
+                    + "function observePlayer(){"
+                    + "if(window.__ssyoutubeMiniplayerViewObserver||!window.MutationObserver){return;}"
+                    + "window.__ssyoutubeMiniplayerViewObserver=new MutationObserver(function(mutations){"
+                    + "if(!window.__ssyoutubeMiniplayerViewActive){return;}"
+                    + "var player=window.__ssyoutubeMiniplayerPlayer;"
+                    + "if(player&&player.isConnected){return;}"
+                    + "if(player){setPlayer(null);}"
+                    + "for(var i=0;i<mutations.length;i++){"
+                    + "for(var j=0;j<mutations[i].addedNodes.length;j++){"
+                    + "var replacement=playerFrom(mutations[i].addedNodes[j]);"
+                    + "if(replacement){setPlayer(replacement);return;}"
+                    + "}"
+                    + "}"
+                    + "});"
+                    + "window.__ssyoutubeMiniplayerViewObserver.observe("
+                    + "document.documentElement||document,{childList:true,subtree:true});"
                     + "}"
                     + "window.__ssyoutubeMiniplayerViewActive=true;"
                     + "window.__ssyoutubeMiniplayerViewApply=apply;"
                     + "apply();"
-                    + "if(!window.__ssyoutubeMiniplayerViewTimer){"
-                    + "window.__ssyoutubeMiniplayerViewTimer=setInterval(apply,500);"
-                    + "}"
+                    + "observePlayer();"
                     + "})()";
 
     /** Undoes {@link #MINIPLAYER_VIEW_SCRIPT} when the video returns to the full-size view. */
     static final String MINIPLAYER_VIEW_RESET_SCRIPT =
             "(function(){"
                     + "window.__ssyoutubeMiniplayerViewActive=false;"
-                    + "if(window.__ssyoutubeMiniplayerViewTimer){"
-                    + "clearInterval(window.__ssyoutubeMiniplayerViewTimer);"
-                    + "window.__ssyoutubeMiniplayerViewTimer=null;"
+                    + "if(window.__ssyoutubeMiniplayerViewObserver){"
+                    + "window.__ssyoutubeMiniplayerViewObserver.disconnect();"
+                    + "window.__ssyoutubeMiniplayerViewObserver=null;"
                     + "}"
                     + "var style=document.getElementById('ssyoutube-miniplayer-style');"
                     + "if(style&&style.parentNode){style.parentNode.removeChild(style);}"
@@ -691,6 +713,7 @@ public class MainActivity extends AppCompatActivity {
                     + "for(var i=0;i<marked.length;i++){"
                     + "marked[i].classList.remove('ssyoutube-miniplayer-player');"
                     + "}"
+                    + "window.__ssyoutubeMiniplayerPlayer=null;"
                     + "})()";
 
     /**
