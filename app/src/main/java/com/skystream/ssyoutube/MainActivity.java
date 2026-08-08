@@ -698,7 +698,7 @@ public class MainActivity extends AppCompatActivity {
                     + "var attempts=0;"
                     + "function resume(){"
                     + "var video=document.querySelector('video');"
-                    + "if(video&&!video.ended){"
+                    + "if(video&&video.paused&&!video.ended){"
                     + "var playback=video.play();"
                     + "if(playback&&playback.catch){playback.catch(function(){});}"
                     + "}"
