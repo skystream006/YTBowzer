@@ -184,7 +184,9 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains(".ytp-chrome-bottom"));
         assertTrue(script.contains("display:none!important"));
         assertTrue(script.contains("ssyoutube-miniplayer-player"));
-        assertTrue(script.contains("setInterval(apply,500)"));
+        assertTrue(script.contains("new MutationObserver"));
+        assertTrue(script.contains("playerFrom(mutations[i].addedNodes[j])"));
+        assertFalse(script.contains("setInterval(apply,500)"));
     }
 
     @Test
@@ -192,7 +194,7 @@ public class MainActivityAdScriptTest {
         String script = MainActivity.MINIPLAYER_VIEW_RESET_SCRIPT;
         assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("__ssyoutubeMiniplayerViewActive=false"));
-        assertTrue(script.contains("clearInterval"));
+        assertTrue(script.contains("ViewObserver.disconnect()"));
         assertTrue(script.contains("removeChild(style)"));
         assertTrue(script.contains("classList.remove('ssyoutube-miniplayer')"));
         assertTrue(script.contains("classList.remove('ssyoutube-miniplayer-player')"));
