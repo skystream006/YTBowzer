@@ -605,7 +605,8 @@ public class MainActivity extends AppCompatActivity {
                     + "if(swipe.dy<=0||!isWatchPage()){return;}"
                     + "if(!window.ssYouTubeNative||!window.ssYouTubeNative.minimize){return;}"
                     + "if(gestures.isFullscreen()||!gestures.isPlaying(swipe.player)){return;}"
-                    + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'');"
+                    + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'',"
+                    + "gestures.isPlaying(swipe.player));"
                     + "});"
                     + "})()";
 
@@ -690,6 +691,27 @@ public class MainActivity extends AppCompatActivity {
                     + "for(var i=0;i<marked.length;i++){"
                     + "marked[i].classList.remove('ssyoutube-miniplayer-player');"
                     + "}"
+                    + "})()";
+
+    /** Restarts a video that was playing before its WebView was moved into the miniplayer. */
+    static final String MINIPLAYER_PLAYBACK_RESUME_SCRIPT =
+            "(function(){"
+                    + "var attempts=0;"
+                    + "function retry(){"
+                    + "attempts++;"
+                    + "if(attempts<5){setTimeout(resume,250);}"
+                    + "}"
+                    + "function resume(){"
+                    + "var video=document.querySelector('video');"
+                    + "if(!video){"
+                    + "retry();"
+                    + "return;"
+                    + "}"
+                    + "if(video.ended||!video.paused){return;}"
+                    + "var playback=video.play();"
+                    + "if(playback&&playback.catch){playback.catch(retry);}"
+                    + "}"
+                    + "resume();"
                     + "})()";
 
     /**
@@ -1096,14 +1118,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @android.webkit.JavascriptInterface
-        public void minimize(final String resultsUrl) {
+        public void minimize(String resultsUrl) {
+            minimize(resultsUrl, false);
+        }
+
+        @android.webkit.JavascriptInterface
+        public void minimize(final String resultsUrl, final boolean resumePlayback) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     if (source != webView) {
                         return;
                     }
-                    enterMiniplayer(resultsUrl);
+                    enterMiniplayer(resultsUrl, resumePlayback);
                 }
             });
         }
@@ -1113,7 +1140,7 @@ public class MainActivity extends AppCompatActivity {
      * Shrinks the currently playing video into a small picture-in-picture window and shows
      * the cached results page (the page the user was on before opening the video) underneath.
      */
-    private void enterMiniplayer(String resultsUrl) {
+    private void enterMiniplayer(String resultsUrl, boolean resumePlayback) {
         if (miniplayerWebView != null || fullscreenView != null) {
             return;
         }
@@ -1130,8 +1157,6 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         resultsView.loadUrl(resultsUrl);
         webView = resultsView;
-
-        videoView.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
 
         FrameLayout container = new FrameLayout(this);
         container.setBackgroundResource(R.drawable.bg_miniplayer);
@@ -1171,6 +1196,10 @@ public class MainActivity extends AppCompatActivity {
 
         miniplayerWebView = videoView;
         miniplayerContainer = container;
+        videoView.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
+        if (resumePlayback) {
+            videoView.evaluateJavascript(MINIPLAYER_PLAYBACK_RESUME_SCRIPT, null);
+        }
         settingsButton.bringToFront();
         updateSettingsButton(resultsView.getUrl());
     }

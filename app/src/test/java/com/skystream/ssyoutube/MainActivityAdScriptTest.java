@@ -199,6 +199,18 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
+    public void miniplayerRestartsPlaybackAfterWebViewIsMoved() {
+        String script = MainActivity.MINIPLAYER_PLAYBACK_RESUME_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("video.ended"));
+        assertTrue(script.contains("video.paused"));
+        assertTrue(script.contains("video.play()"));
+        assertTrue(script.contains("playback.catch(retry)"));
+        assertTrue(script.contains("attempts<5"));
+        assertTrue(script.contains("setTimeout(resume,250)"));
+    }
+
+    @Test
     public void preloadsUpcomingResultsAheadOfScroll() {
         String script = MainActivity.RESULTS_PRELOAD_SCRIPT;
         assertTrue(script.startsWith("(function"));
