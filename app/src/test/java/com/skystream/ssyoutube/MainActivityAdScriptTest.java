@@ -202,7 +202,6 @@ public class MainActivityAdScriptTest {
     public void miniplayerRestartsPlaybackAfterWebViewIsMoved() {
         String script = MainActivity.MINIPLAYER_PLAYBACK_RESUME_SCRIPT;
         assertTrue(script.startsWith("(function"));
-        assertTrue(script.contains("video.paused"));
         assertTrue(script.contains("video.ended"));
         assertTrue(script.contains("video.paused"));
         assertTrue(script.contains("video.play()"));
