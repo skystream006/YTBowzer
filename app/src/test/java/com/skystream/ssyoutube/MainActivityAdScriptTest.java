@@ -205,12 +205,12 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("video.ended"));
         assertTrue(script.contains("video.paused"));
         assertTrue(script.contains("video.play()"));
-        assertTrue(script.contains("playback.catch(retry)"));
-        assertTrue(script.contains("attempts<5"));
-        assertTrue(script.contains("setTimeout(resume,250)"));
+        assertTrue(script.contains("playback.catch(function()"));
+        assertTrue(script.contains("attempt<5"));
+        assertTrue(script.contains("scheduleResume(250,attempt+1)"));
         assertTrue(script.contains("__ssyoutubeMiniplayerKeepPlaying=true"));
-        assertTrue(script.contains("addEventListener('pause'"));
-        assertTrue(script.contains("setInterval(keepPlaying,500)"));
+        assertTrue(script.contains("video.addEventListener('pause'"));
+        assertTrue(script.contains("new MutationObserver"));
     }
 
     @Test
@@ -218,7 +218,8 @@ public class MainActivityAdScriptTest {
         String script = MainActivity.MINIPLAYER_PLAYBACK_RESUME_RESET_SCRIPT;
         assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("__ssyoutubeMiniplayerKeepPlaying=false"));
-        assertTrue(script.contains("clearInterval"));
+        assertTrue(script.contains("clearTimeout"));
+        assertTrue(script.contains("ResumeObserver.disconnect()"));
     }
 
     @Test
