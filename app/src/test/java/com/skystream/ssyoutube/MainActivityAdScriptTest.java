@@ -233,9 +233,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("img[src*=\"yt_logo\"]"));
         assertTrue(script.contains("LOGO_SRC=location.origin+'" + MainActivity.APP_LOGO_PATH + "'"));
         assertTrue(script.contains("image.classList&&image.classList.contains(CLASS)"));
-        assertTrue(script.contains("replaceChild("));
-        assertTrue(script.contains("node.removeChild(children[i])"));
-        assertTrue(script.contains("styleImage(existing,height)"));
+        assertTrue(script.contains("image.src=LOGO_SRC"));
         assertTrue(script.contains("MutationObserver"));
         assertTrue(script.contains("yt-navigate-finish"));
     }
@@ -251,17 +249,24 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
-    public void replacesLogoWithinShadowHostsUsingAnOverlayInsteadOfChildReplacement() {
+    public void paintsLogoContainersWithABackgroundImageInsteadOfSwappingInternalContent() {
         String script = MainActivity.APP_LOGO_SCRIPT;
-        // Mobile masthead custom elements (e.g. ytm-topbar-logo-renderer) attach an open
-        // shadow root and render their logo entirely inside it, so appending a replacement
-        // image as a light-DOM child of the host (the desktop-style approach) is invisible.
-        // A distinct code path detects such hosts and overlays a positioned image instead.
-        assertTrue(script.contains("if(node.shadowRoot){replaceShadowHost(node);return;}"));
-        assertTrue(script.contains("function replaceShadowHost(node)"));
-        assertTrue(script.contains("node.style.opacity='0'"));
-        assertTrue(script.contains("function positionOverlay(node,overlay)"));
-        assertTrue(script.contains("getBoundingClientRect()"));
+        // Earlier revisions swapped or overlaid the specific <img>/shadow-DOM element YouTube
+        // used to render its logo, which broke every time YouTube changed how that element was
+        // structured (plain img vs. shadow DOM vs. a CSS background/mask image with no <img> at
+        // all). This version instead paints the matched container's own box with the bundled
+        // logo as a CSS background-image and hides whatever the container renders internally,
+        // which works the same regardless of how the logo happens to be drawn inside it.
+        assertTrue(script.contains("function paintContainer(node)"));
+        assertTrue(script.contains("background-image"));
+        assertTrue(script.contains("background-size"));
+        assertTrue(script.contains("function hideLightChildren(node)"));
+        assertTrue(script.contains("function hideShadowContent(shadow)"));
+        assertTrue(script.contains("if(node.shadowRoot){hideShadowContent(node.shadowRoot);}"));
+        assertTrue(script.contains("opacity','0','important'"));
+        // Only opacity is touched (not visibility/display) so hidden content stays
+        // hit-testable and a tap still reaches the original click handler (e.g. the home link).
+        assertTrue(script.contains(":host>*{opacity:0 !important;}"));
     }
 
     @Test

@@ -761,10 +761,29 @@ public class MainActivity extends AppCompatActivity {
      */
     static final String APP_LOGO_PATH = "/ssyoutube_app_logo.png";
 
-    /** Swaps the YouTube wordmark on the page for the bundled app logo. */
+    /**
+     * Swaps the YouTube wordmark on the page for the bundled app logo.
+     *
+     * <p>Earlier revisions tried to locate the specific element YouTube uses to render its
+     * logo (an {@code <img>}, an inline SVG, or a shadow-DOM subtree) and either swap its
+     * {@code src} or overlay a positioned replacement on top of it. YouTube renders the same
+     * logo differently across the mobile masthead, the desktop masthead, and the player
+     * watermark, and has changed the underlying markup (plain image vs. shadow DOM vs. a CSS
+     * background/mask image with no {@code <img>} at all) several times, so any approach tied
+     * to a specific rendering technique kept breaking again after a page/markup change.
+     *
+     * <p>This version instead treats every matched logo container the same way regardless of
+     * how it draws its logo internally: the container's own box is painted with the bundled
+     * logo as a CSS {@code background-image} (so it works whether the real content is an
+     * {@code <img>}, inline SVG, or CSS mask), and everything already inside the container is
+     * hidden with {@code visibility:hidden}/{@code opacity:0} rather than removed or measured,
+     * which needs no knowledge of the container's internal structure and works the same for
+     * light DOM and (via an injected {@code <style>}) shadow DOM alike.
+     */
     static final String APP_LOGO_SCRIPT =
             "(function(){"
                     + "var CLASS='ssyoutube-app-logo';"
+                    + "var HIDE_STYLE_ID='ssyoutube-app-logo-hide';"
                     + "var CONTAINERS='ytm-mobile-topbar-renderer .topbar-logo,"
                     + "ytm-topbar-logo-renderer,ytm-youtube-logo,.mobile-topbar-header-logo,"
                     + "ytm-logo,ytd-topbar-logo-renderer,ytd-logo,a#logo,#logo-icon,"
@@ -774,90 +793,58 @@ public class MainActivity extends AppCompatActivity {
                     + "img[src*=\"ytl_logo\"],img[src*=\"watermark\"],img.branding-img';"
                     + "var LOGO_SRC=location.origin+'" + APP_LOGO_PATH + "';"
                     + "function asArray(list){return Array.prototype.slice.call(list);}"
-                    + "function styleImage(image,height){"
-                    + "image.alt='YouTube';"
-                    + "image.src=LOGO_SRC;"
-                    + "image.style.height=height+'px';"
-                    + "image.style.width='auto';"
-                    + "image.style.display='inline-block';"
-                    + "image.style.objectFit='contain';"
+                    // Hides everything a container currently renders internally, without caring
+                    // whether that content is an <img>, inline SVG, or something else: this is
+                    // what makes painting the container's own background reliable regardless of
+                    // how YouTube happens to draw the logo this week. Only opacity is touched
+                    // (not visibility/display), so the hidden content stays hit-testable and a
+                    // tap still reaches whatever click handler (e.g. the home link) it carries.
+                    + "function hideLightChildren(node){"
+                    + "var children=asArray(node.children);"
+                    + "for(var i=0;i<children.length;i++){"
+                    + "children[i].style.setProperty('opacity','0','important');"
                     + "}"
-                    + "function createLogoImage(height){"
-                    + "var image=document.createElement('img');"
-                    + "image.className=CLASS;"
-                    + "styleImage(image,height);"
-                    + "return image;"
-                    + "}"
-                    + "function replaceImage(image){"
-                    + "if(!image.parentElement){return;}"
-                    + "if(image.classList&&image.classList.contains(CLASS)"
-                    + "&&image.src===LOGO_SRC){"
-                    + "styleImage(image,image.offsetHeight||24);"
-                    + "return;"
-                    + "}"
-                    + "image.parentElement.replaceChild("
-                    + "createLogoImage(image.offsetHeight||24),image);"
-                    + "}"
-                    + "function positionOverlay(node,overlay){"
-                    + "var rect=node.getBoundingClientRect();"
-                    + "var parentRect=node.parentElement.getBoundingClientRect();"
-                    + "overlay.style.position='absolute';"
-                    + "overlay.style.top=(rect.top-parentRect.top)+'px';"
-                    + "overlay.style.left=(rect.left-parentRect.left)+'px';"
-                    + "overlay.style.width=rect.width+'px';"
-                    + "overlay.style.height=rect.height+'px';"
-                    + "overlay.style.pointerEvents='none';"
-                    + "overlay.style.margin='0';"
                     + "}"
                     // Mobile masthead custom elements (ytm-youtube-logo, ytm-topbar-logo-renderer)
-                    // attach an open shadow root and render their visible logo entirely inside
-                    // it, unlike desktop's ytd-* equivalents which use plain light DOM.
-                    // Appending a replacement image as a light-DOM child of such a host (the
-                    // desktop-style approach below) never becomes visible because these hosts
-                    // define no <slot> to project it into. Instead the host itself is made
-                    // transparent (but left in place and clickable, so the home link keeps
-                    // working) and a positioned overlay image is inserted as a light-DOM
-                    // sibling, sized and placed to match the host's on-screen box.
-                    + "function replaceShadowHost(node){"
-                    + "var parent=node.parentElement;"
-                    + "if(!parent){return;}"
-                    + "var rect=node.getBoundingClientRect();"
-                    // A zero-size box means the host has not been laid out yet (e.g. right
-                    // after insertion); skip for now rather than creating a malformed overlay.
-                    // The periodic applyLogos() re-run (interval/mutation/navigation hooks
-                    // below) retries this shortly after, once layout has settled.
-                    + "if(!rect.width||!rect.height){return;}"
-                    + "if(getComputedStyle(parent).position==='static'){"
-                    + "parent.style.position='relative';"
+                    // attach an open shadow root and render their logo entirely inside it, where
+                    // regular element styling from the light DOM cannot reach. A small <style>
+                    // sheet inserted into the shadow root itself (scoped to its direct children,
+                    // so it never hides itself) hides everything the root renders, leaving the
+                    // host's own background (painted by paintContainer below) as the only
+                    // visible thing.
+                    + "function hideShadowContent(shadow){"
+                    + "var style=shadow.querySelector?shadow.querySelector('#'+HIDE_STYLE_ID):null;"
+                    + "if(style){return;}"
+                    + "style=document.createElement('style');"
+                    + "style.id=HIDE_STYLE_ID;"
+                    + "style.textContent=':host>*{opacity:0 !important;}';"
+                    + "shadow.appendChild(style);"
                     + "}"
-                    + "node.style.opacity='0';"
-                    + "var overlay=node.__ssyoutubeOverlay;"
-                    + "if(!overlay||!overlay.isConnected){"
-                    + "overlay=createLogoImage(rect.height||24);"
-                    + "node.__ssyoutubeOverlay=overlay;"
-                    + "parent.appendChild(overlay);"
-                    + "}else{"
-                    + "styleImage(overlay,rect.height||24);"
-                    + "}"
-                    + "positionOverlay(node,overlay);"
+                    + "function paintContainer(node){"
+                    + "if(!node||!node.style){return;}"
+                    + "node.classList.add(CLASS);"
+                    + "node.style.setProperty('background-image','url(\"'+LOGO_SRC+'\")','important');"
+                    + "node.style.setProperty('background-repeat','no-repeat','important');"
+                    + "node.style.setProperty('background-position','center left','important');"
+                    + "node.style.setProperty('background-size','contain','important');"
+                    + "hideLightChildren(node);"
+                    + "if(node.shadowRoot){hideShadowContent(node.shadowRoot);}"
                     + "}"
                     + "function replaceContainer(node){"
-                    + "if(!node.querySelector){return;}"
                     + "if(node.parentElement&&node.parentElement.closest"
                     + "&&node.parentElement.closest(CONTAINERS)){return;}"
-                    + "if(node.shadowRoot){replaceShadowHost(node);return;}"
-                    + "var height=node.offsetHeight||24;"
-                    + "var children=asArray(node.children);"
-                    + "for(var i=children.length-1;i>=0;i--){"
-                    + "if(children[i].classList&&children[i].classList.contains(CLASS)){continue;}"
-                    + "node.removeChild(children[i]);"
+                    + "paintContainer(node);"
                     + "}"
-                    + "var existing=node.querySelector('img.'+CLASS);"
-                    + "if(existing){"
-                    + "styleImage(existing,height);"
-                    + "return;"
-                    + "}"
-                    + "node.appendChild(createLogoImage(height));"
+                    // Kept as a fallback for stray logo <img>s outside the known containers
+                    // (e.g. the wordmark can occasionally appear on its own in search results
+                    // or other embedded surfaces): a direct src swap is enough for a plain img.
+                    + "function replaceImage(image){"
+                    + "if(image.classList&&image.classList.contains(CLASS)"
+                    + "&&image.src===LOGO_SRC){return;}"
+                    + "image.classList.add(CLASS);"
+                    + "image.alt='YouTube';"
+                    + "image.src=LOGO_SRC;"
+                    + "image.style.setProperty('object-fit','contain','important');"
                     + "}"
                     + "function watch(target){"
                     + "new MutationObserver(function(mutations){"
