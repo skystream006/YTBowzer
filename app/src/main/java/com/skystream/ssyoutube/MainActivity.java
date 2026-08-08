@@ -673,7 +673,7 @@ public class MainActivity extends AppCompatActivity {
                     + "if(!window.__ssyoutubeMiniplayerViewActive){return;}"
                     + "ensureStyle();"
                     + "document.documentElement.classList.add('ssyoutube-miniplayer');"
-                    + "setPlayer(playerFrom(document));"
+                    + "setPlayer(document.querySelector(PLAYER_SELECTOR));"
                     + "}"
                     + "function observePlayer(){"
                     + "if(window.__ssyoutubeMiniplayerViewObserver||!window.MutationObserver){return;}"
