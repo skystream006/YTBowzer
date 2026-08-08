@@ -695,9 +695,14 @@ public class MainActivity extends AppCompatActivity {
     /** Restarts a video that was playing before its WebView was moved into the miniplayer. */
     static final String MINIPLAYER_PLAYBACK_RESUME_SCRIPT =
             "(function(){"
-                    + "var attempts=0;"
+                    + "var attempts=0,lookupAttempts=0;"
                     + "function resume(){"
                     + "var video=document.querySelector('video');"
+                    + "if(!video){"
+                    + "lookupAttempts++;"
+                    + "if(lookupAttempts<5){setTimeout(resume,250);}"
+                    + "return;"
+                    + "}"
                     + "if(video&&!video.ended&&!video.paused){return;}"
                     + "if(video&&!video.ended){"
                     + "var playback=video.play();"
