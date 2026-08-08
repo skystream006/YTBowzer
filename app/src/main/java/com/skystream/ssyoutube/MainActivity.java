@@ -1192,9 +1192,9 @@ public class MainActivity extends AppCompatActivity {
         miniplayerWebView = null;
         miniplayerContainer = null;
 
+        videoView.evaluateJavascript(MINIPLAYER_VIEW_RESET_SCRIPT, null);
         ((ViewGroup) videoView.getParent()).removeView(videoView);
         rootContainer.removeView(container);
-        videoView.evaluateJavascript(MINIPLAYER_VIEW_RESET_SCRIPT, null);
 
         WebView resultsView = webView;
         rootContainer.removeView(resultsView);
