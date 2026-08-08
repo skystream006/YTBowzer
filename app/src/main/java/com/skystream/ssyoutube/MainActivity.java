@@ -605,7 +605,8 @@ public class MainActivity extends AppCompatActivity {
                     + "if(swipe.dy<=0||!isWatchPage()){return;}"
                     + "if(!window.ssYouTubeNative||!window.ssYouTubeNative.minimize){return;}"
                     + "if(gestures.isFullscreen()||!gestures.isPlaying(swipe.player)){return;}"
-                    + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'',true);"
+                    + "window.ssYouTubeNative.minimize(window.__ssyoutubeResultsUrl||'',"
+                    + "gestures.isPlaying(swipe.player));"
                     + "});"
                     + "})()";
 
@@ -1118,7 +1119,7 @@ public class MainActivity extends AppCompatActivity {
 
         @android.webkit.JavascriptInterface
         public void minimize(String resultsUrl) {
-            minimize(resultsUrl, true);
+            minimize(resultsUrl, false);
         }
 
         @android.webkit.JavascriptInterface
