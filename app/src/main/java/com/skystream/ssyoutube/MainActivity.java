@@ -610,6 +610,89 @@ public class MainActivity extends AppCompatActivity {
                     + "})()";
 
     /**
+     * Strips the watch page down to just the video while it is shown in the miniplayer: the
+     * player is pinned over the whole (small) viewport, the video is scaled to fit inside it
+     * without cropping, and the surrounding page chrome plus the player's own controls and
+     * end-screen overlays are hidden. The class is re-applied on a short interval because
+     * YouTube re-creates the player element on navigation.
+     */
+    static final String MINIPLAYER_VIEW_SCRIPT =
+            "(function(){"
+                    + "var PLAYER_SELECTOR='#movie_player,.html5-video-player,ytd-player,ytm-player,"
+                    + "ytm-video-player,.player-container,#player-container-id,#player';"
+                    + "var STYLE_ID='ssyoutube-miniplayer-style';"
+                    + "var CSS='html.ssyoutube-miniplayer,html.ssyoutube-miniplayer body{"
+                    + "margin:0!important;padding:0!important;overflow:hidden!important;"
+                    + "background:#000!important;}"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player{"
+                    + "position:fixed!important;top:0!important;left:0!important;right:0!important;"
+                    + "bottom:0!important;width:100vw!important;height:100vh!important;"
+                    + "max-width:100vw!important;max-height:100vh!important;margin:0!important;"
+                    + "padding:0!important;background:#000!important;z-index:2147483647!important;}"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .html5-video-container,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player video{"
+                    + "position:absolute!important;top:0!important;left:0!important;"
+                    + "width:100%!important;height:100%!important;object-fit:contain!important;}"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-chrome-top,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-chrome-bottom,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-gradient-top,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-gradient-bottom,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-ce-element,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-endscreen-content,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-pause-overlay,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-watermark,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .player-controls-background,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .player-controls-content,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player ytm-custom-control,"
+                    + "html.ssyoutube-miniplayer .ssyoutube-miniplayer-player .ytp-cued-thumbnail-overlay"
+                    + "{display:none!important;}';"
+                    + "function ensureStyle(){"
+                    + "if(document.getElementById(STYLE_ID)){return;}"
+                    + "var head=document.head||document.documentElement;"
+                    + "if(!head){return;}"
+                    + "var style=document.createElement('style');"
+                    + "style.id=STYLE_ID;"
+                    + "style.textContent=CSS;"
+                    + "head.appendChild(style);"
+                    + "}"
+                    + "function apply(){"
+                    + "if(!window.__ssyoutubeMiniplayerViewActive){return;}"
+                    + "ensureStyle();"
+                    + "document.documentElement.classList.add('ssyoutube-miniplayer');"
+                    + "var players=document.querySelectorAll(PLAYER_SELECTOR);"
+                    + "var player=players.length?players[0]:null;"
+                    + "var marked=document.querySelectorAll('.ssyoutube-miniplayer-player');"
+                    + "for(var i=0;i<marked.length;i++){"
+                    + "if(marked[i]!==player){marked[i].classList.remove('ssyoutube-miniplayer-player');}"
+                    + "}"
+                    + "if(player){player.classList.add('ssyoutube-miniplayer-player');}"
+                    + "}"
+                    + "window.__ssyoutubeMiniplayerViewActive=true;"
+                    + "window.__ssyoutubeMiniplayerViewApply=apply;"
+                    + "apply();"
+                    + "if(!window.__ssyoutubeMiniplayerViewTimer){"
+                    + "window.__ssyoutubeMiniplayerViewTimer=setInterval(apply,500);"
+                    + "}"
+                    + "})()";
+
+    /** Undoes {@link #MINIPLAYER_VIEW_SCRIPT} when the video returns to the full-size view. */
+    static final String MINIPLAYER_VIEW_RESET_SCRIPT =
+            "(function(){"
+                    + "window.__ssyoutubeMiniplayerViewActive=false;"
+                    + "if(window.__ssyoutubeMiniplayerViewTimer){"
+                    + "clearInterval(window.__ssyoutubeMiniplayerViewTimer);"
+                    + "window.__ssyoutubeMiniplayerViewTimer=null;"
+                    + "}"
+                    + "var style=document.getElementById('ssyoutube-miniplayer-style');"
+                    + "if(style&&style.parentNode){style.parentNode.removeChild(style);}"
+                    + "document.documentElement.classList.remove('ssyoutube-miniplayer');"
+                    + "var marked=document.querySelectorAll('.ssyoutube-miniplayer-player');"
+                    + "for(var i=0;i<marked.length;i++){"
+                    + "marked[i].classList.remove('ssyoutube-miniplayer-player');"
+                    + "}"
+                    + "})()";
+
+    /**
      * Extends how far ahead of the viewport lazy-loaded content is fetched, so roughly the
      * next two screens of search/feed results are preloaded before the user scrolls to them.
      */
@@ -1048,6 +1131,8 @@ public class MainActivity extends AppCompatActivity {
         resultsView.loadUrl(resultsUrl);
         webView = resultsView;
 
+        videoView.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
+
         FrameLayout container = new FrameLayout(this);
         container.setBackgroundResource(R.drawable.bg_miniplayer);
         container.addView(videoView, new FrameLayout.LayoutParams(
@@ -1090,6 +1175,13 @@ public class MainActivity extends AppCompatActivity {
         updateSettingsButton(resultsView.getUrl());
     }
 
+    /** Re-applies the video-only miniplayer styling if {@code view} is the miniplayer WebView. */
+    private void reapplyMiniplayerView(WebView view) {
+        if (miniplayerWebView != null && view == miniplayerWebView) {
+            view.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
+        }
+    }
+
     /** Restores the miniplayer video to fullscreen, discarding the temporary results page. */
     private void expandMiniplayer() {
         if (miniplayerWebView == null) {
@@ -1102,6 +1194,7 @@ public class MainActivity extends AppCompatActivity {
 
         ((ViewGroup) videoView.getParent()).removeView(videoView);
         rootContainer.removeView(container);
+        videoView.evaluateJavascript(MINIPLAYER_VIEW_RESET_SCRIPT, null);
 
         WebView resultsView = webView;
         rootContainer.removeView(resultsView);
@@ -1473,6 +1566,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
+            reapplyMiniplayerView(view);
         }
 
         @Override
@@ -1490,6 +1584,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
+            reapplyMiniplayerView(view);
             CookieManager.getInstance().flush();
             scheduleAppLogoReinjection(view);
         }
