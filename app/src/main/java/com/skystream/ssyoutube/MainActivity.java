@@ -868,18 +868,27 @@ public class MainActivity extends AppCompatActivity {
      * background/mask image with no {@code <img>} at all) several times, so any approach tied
      * to a specific rendering technique kept breaking again after a page/markup change.
      *
-     * <p>This version instead treats every matched logo container the same way regardless of
-     * how it draws its logo internally: the container's own box is painted with the bundled
-     * logo as a CSS {@code background-image} (so it works whether the real content is an
-     * {@code <img>}, inline SVG, or CSS mask), and everything already inside the container is
-     * hidden with {@code visibility:hidden}/{@code opacity:0} rather than removed or measured,
-     * which needs no knowledge of the container's internal structure and works the same for
-     * light DOM and (via an injected {@code <style>}) shadow DOM alike.
+     * <p>A later revision painted every matched container's own box with the bundled logo as a
+     * CSS {@code background-image} and hid the container's existing content. That still failed
+     * on the mobile masthead: {@code ytm-*} custom elements are frequently unstyled custom
+     * elements with no box of their own ({@code display:contents} or a zero-size host), so a
+     * {@code background-image} on the host paints nothing even though the hidden content
+     * underneath is gone.
+     *
+     * <p>This version instead inserts a real {@code <img>} element sized and positioned with
+     * inline styles that do not depend on the container having any intrinsic box: the container
+     * is forced to {@code position:relative} with an explicit minimum size, and the image is
+     * absolutely positioned to fill it. The overlay image is inserted into <em>both</em> the
+     * light DOM and, when present, the shadow root directly, because a light-DOM child is only
+     * visible if the shadow tree renders a {@code <slot>} for it, and the shadow tree's own
+     * content otherwise remains invisible to light-DOM styling. Existing content is hidden with
+     * {@code opacity:0} (not removed or measured) so it stays hit-testable and taps still reach
+     * whatever click handler (e.g. the home link) it carries.
      */
     static final String APP_LOGO_SCRIPT =
             "(function(){"
                     + "var CLASS='ssyoutube-app-logo';"
-                    + "var HIDE_STYLE_ID='ssyoutube-app-logo-hide';"
+                    + "var OVERLAY_CLASS='ssyoutube-app-logo-overlay';"
                     + "var CONTAINERS='ytm-mobile-topbar-renderer .topbar-logo,"
                     + "ytm-topbar-logo-renderer,ytm-youtube-logo,.mobile-topbar-header-logo,"
                     + "ytm-logo,ytd-topbar-logo-renderer,ytd-logo,a#logo,#logo-icon,"
@@ -888,43 +897,84 @@ public class MainActivity extends AppCompatActivity {
                     + "var IMAGES='img[src*=\"yt_logo\"],img[src*=\"youtube_logo\"],"
                     + "img[src*=\"ytl_logo\"],img[src*=\"watermark\"],img.branding-img';"
                     + "var LOGO_SRC=location.origin+'" + APP_LOGO_PATH + "';"
+                    + "var MIN_SIZE_PX=24;"
                     + "function asArray(list){return Array.prototype.slice.call(list);}"
                     // Hides everything a container currently renders internally, without caring
-                    // whether that content is an <img>, inline SVG, or something else: this is
-                    // what makes painting the container's own background reliable regardless of
-                    // how YouTube happens to draw the logo this week. Only opacity is touched
-                    // (not visibility/display), so the hidden content stays hit-testable and a
-                    // tap still reaches whatever click handler (e.g. the home link) it carries.
+                    // whether that content is an <img>, inline SVG, or something else. Only
+                    // opacity is touched (not visibility/display), so the hidden content stays
+                    // hit-testable and a tap still reaches whatever click handler (e.g. the home
+                    // link) it carries. The overlay image itself is skipped so it stays visible.
                     + "function hideLightChildren(node){"
                     + "var children=asArray(node.children);"
                     + "for(var i=0;i<children.length;i++){"
+                    + "if(children[i].classList.contains(OVERLAY_CLASS)){continue;}"
                     + "children[i].style.setProperty('opacity','0','important');"
                     + "}"
                     + "}"
                     // Mobile masthead custom elements (ytm-youtube-logo, ytm-topbar-logo-renderer)
                     // attach an open shadow root and render their logo entirely inside it, where
-                    // regular element styling from the light DOM cannot reach. A small <style>
-                    // sheet inserted into the shadow root itself (scoped to its direct children,
-                    // so it never hides itself) hides everything the root renders, leaving the
-                    // host's own background (painted by paintContainer below) as the only
-                    // visible thing.
-                    + "function hideShadowContent(shadow){"
-                    + "var style=shadow.querySelector?shadow.querySelector('#'+HIDE_STYLE_ID):null;"
-                    + "if(style){return;}"
-                    + "style=document.createElement('style');"
-                    + "style.id=HIDE_STYLE_ID;"
-                    + "style.textContent=':host>*{opacity:0 !important;}';"
-                    + "shadow.appendChild(style);"
+                    // regular element styling and children from the light DOM cannot reach. The
+                    // existing shadow content is hidden the same way as light DOM children, and a
+                    // dedicated overlay <img> is appended directly into the shadow root itself so
+                    // it renders even though nothing in the light DOM (like a normal child) would.
+                    + "function paintShadow(shadow){"
+                    + "var children=asArray(shadow.children);"
+                    + "for(var i=0;i<children.length;i++){"
+                    + "if(children[i].classList&&children[i].classList.contains(OVERLAY_CLASS)){"
+                    + "continue;"
+                    + "}"
+                    + "children[i].style.setProperty('opacity','0','important');"
+                    + "}"
+                    + "placeOverlay(shadow);"
+                    + "}"
+                    // Creates (or reuses) the overlay <img> inside the given root, sizes it to
+                    // fill the root's host, and keeps its src in sync with the bundled logo.
+                    + "function placeOverlay(root){"
+                    + "var img=root.querySelector('img.'+OVERLAY_CLASS);"
+                    + "if(!img){"
+                    + "img=document.createElement('img');"
+                    + "img.className=OVERLAY_CLASS;"
+                    + "img.alt='YouTube';"
+                    + "root.appendChild(img);"
+                    + "}"
+                    + "img.style.setProperty('position','absolute','important');"
+                    + "img.style.setProperty('top','0','important');"
+                    + "img.style.setProperty('left','0','important');"
+                    + "img.style.setProperty('width','100%','important');"
+                    + "img.style.setProperty('height','100%','important');"
+                    + "img.style.setProperty('object-fit','contain','important');"
+                    + "img.style.setProperty('object-position','left center','important');"
+                    + "img.style.setProperty('pointer-events','none','important');"
+                    + "if(img.src!==LOGO_SRC){img.src=LOGO_SRC;}"
+                    + "return img;"
+                    + "}"
+                    // Forces the container to establish its own box regardless of how YouTube
+                    // styles it this week (including custom elements left at the default
+                    // display:contents, which paint nothing at all), so the absolutely
+                    // positioned overlay image always has somewhere to be positioned within.
+                    + "function ensureBox(node){"
+                    + "var style=node.style;"
+                    + "var computed=window.getComputedStyle(node);"
+                    + "if(computed.position==='static'){"
+                    + "style.setProperty('position','relative','important');"
+                    + "}"
+                    + "if(computed.display==='contents'||computed.display==='inline'){"
+                    + "style.setProperty('display','inline-block','important');"
+                    + "}"
+                    + "if(node.offsetWidth<MIN_SIZE_PX){"
+                    + "style.setProperty('min-width',MIN_SIZE_PX+'px','important');"
+                    + "}"
+                    + "if(node.offsetHeight<MIN_SIZE_PX){"
+                    + "style.setProperty('min-height',MIN_SIZE_PX+'px','important');"
+                    + "}"
                     + "}"
                     + "function paintContainer(node){"
                     + "if(!node||!node.style){return;}"
                     + "node.classList.add(CLASS);"
-                    + "node.style.setProperty('background-image','url(\"'+LOGO_SRC+'\")','important');"
-                    + "node.style.setProperty('background-repeat','no-repeat','important');"
-                    + "node.style.setProperty('background-position','center left','important');"
-                    + "node.style.setProperty('background-size','contain','important');"
+                    + "ensureBox(node);"
                     + "hideLightChildren(node);"
-                    + "if(node.shadowRoot){hideShadowContent(node.shadowRoot);}"
+                    + "placeOverlay(node);"
+                    + "if(node.shadowRoot){paintShadow(node.shadowRoot);}"
                     + "}"
                     + "function replaceContainer(node){"
                     + "if(node.parentElement&&node.parentElement.closest"

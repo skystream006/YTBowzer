@@ -280,24 +280,29 @@ public class MainActivityAdScriptTest {
     }
 
     @Test
-    public void paintsLogoContainersWithABackgroundImageInsteadOfSwappingInternalContent() {
+    public void paintsLogoContainersWithAnOverlayImageInsteadOfSwappingInternalContent() {
         String script = MainActivity.APP_LOGO_SCRIPT;
         // Earlier revisions swapped or overlaid the specific <img>/shadow-DOM element YouTube
-        // used to render its logo, which broke every time YouTube changed how that element was
-        // structured (plain img vs. shadow DOM vs. a CSS background/mask image with no <img> at
-        // all). This version instead paints the matched container's own box with the bundled
-        // logo as a CSS background-image and hides whatever the container renders internally,
-        // which works the same regardless of how the logo happens to be drawn inside it.
+        // used to render its logo, and a later revision painted the container's own box with a
+        // CSS background-image. Both broke on the mobile masthead because its ytm-* custom
+        // elements are frequently unstyled (display:contents or a zero-size host), so a
+        // background-image on the host paints nothing. This version instead forces the
+        // container to have an explicit box and inserts a real, absolutely positioned <img>
+        // into both the light DOM and (when present) the shadow root directly, which renders
+        // regardless of the host's own sizing/display or whether the shadow tree defines a
+        // <slot> for light DOM children.
         assertTrue(script.contains("function paintContainer(node)"));
-        assertTrue(script.contains("background-image"));
-        assertTrue(script.contains("background-size"));
+        assertTrue(script.contains("function ensureBox(node)"));
+        assertTrue(script.contains("function placeOverlay(root)"));
+        assertTrue(script.contains("function paintShadow(shadow)"));
+        assertTrue(script.contains("if(node.shadowRoot){paintShadow(node.shadowRoot);}"));
+        assertTrue(script.contains("position','absolute','important'"));
+        assertTrue(script.contains("min-width"));
+        assertTrue(script.contains("min-height"));
         assertTrue(script.contains("function hideLightChildren(node)"));
-        assertTrue(script.contains("function hideShadowContent(shadow)"));
-        assertTrue(script.contains("if(node.shadowRoot){hideShadowContent(node.shadowRoot);}"));
         assertTrue(script.contains("opacity','0','important'"));
         // Only opacity is touched (not visibility/display) so hidden content stays
         // hit-testable and a tap still reaches the original click handler (e.g. the home link).
-        assertTrue(script.contains(":host>*{opacity:0 !important;}"));
     }
 
     @Test
