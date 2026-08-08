@@ -707,6 +707,7 @@ public class MainActivity extends AppCompatActivity {
                     + "if(lookupAttempts<5){setTimeout(resume,250);}"
                     + "return;"
                     + "}"
+                    + "lookupAttempts=0;"
                     + "if(video.ended||!video.paused){return;}"
                     + "var playback=video.play();"
                     + "if(playback&&playback.catch){playback.catch(retry);}"
