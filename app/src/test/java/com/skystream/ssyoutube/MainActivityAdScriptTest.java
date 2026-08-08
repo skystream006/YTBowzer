@@ -208,6 +208,37 @@ public class MainActivityAdScriptTest {
         assertTrue(script.contains("playback.catch(retry)"));
         assertTrue(script.contains("attempts<5"));
         assertTrue(script.contains("setTimeout(resume,250)"));
+        assertTrue(script.contains("__ssyoutubeMiniplayerKeepPlaying=true"));
+        assertTrue(script.contains("addEventListener('pause'"));
+        assertTrue(script.contains("setInterval(keepPlaying,500)"));
+    }
+
+    @Test
+    public void miniplayerPlaybackResumeResetStopsTheWatchdog() {
+        String script = MainActivity.MINIPLAYER_PLAYBACK_RESUME_RESET_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("__ssyoutubeMiniplayerKeepPlaying=false"));
+        assertTrue(script.contains("clearInterval"));
+    }
+
+    @Test
+    public void blocksPlaybackOnTheResultsPageBehindTheMiniplayer() {
+        String script = MainActivity.RESULTS_AUTOPLAY_BLOCK_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("__ssyoutubeBlockResultsPlayback=true"));
+        assertTrue(script.contains("HTMLMediaElement"));
+        assertTrue(script.contains("proto.play=function()"));
+        assertTrue(script.contains("addEventListener('play'"));
+        assertTrue(script.contains("removeAttribute('autoplay')"));
+        assertTrue(script.contains("setInterval(suppressAll,500)"));
+    }
+
+    @Test
+    public void resultsPlaybackBlockResetRestoresPlayback() {
+        String script = MainActivity.RESULTS_AUTOPLAY_BLOCK_RESET_SCRIPT;
+        assertTrue(script.startsWith("(function"));
+        assertTrue(script.contains("__ssyoutubeBlockResultsPlayback=false"));
+        assertTrue(script.contains("clearInterval"));
     }
 
     @Test

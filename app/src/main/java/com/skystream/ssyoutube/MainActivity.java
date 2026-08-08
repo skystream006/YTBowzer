@@ -693,7 +693,18 @@ public class MainActivity extends AppCompatActivity {
                     + "}"
                     + "})()";
 
-    /** Restarts a video that was playing before its WebView was moved into the miniplayer. */
+    /**
+     * Restarts a video that was playing before its WebView was moved into the miniplayer, and
+     * keeps it playing afterwards.
+     *
+     * <p>Moving the WebView between parents is not the only thing that stops playback: whenever
+     * media starts anywhere else (most notably the inline previews the results page autoplays
+     * underneath the miniplayer) the platform hands audio focus to that media and pauses the
+     * miniplayer's video. A one-shot resume therefore only survived until the results page
+     * started its first preview, so the resume is installed as a watchdog instead: it listens
+     * for {@code pause} on the video and re-checks on a short interval for as long as the
+     * miniplayer view is active, which also covers the player element being re-created.
+     */
     static final String MINIPLAYER_PLAYBACK_RESUME_SCRIPT =
             "(function(){"
                     + "var attempts=0;"
@@ -711,7 +722,92 @@ public class MainActivity extends AppCompatActivity {
                     + "var playback=video.play();"
                     + "if(playback&&playback.catch){playback.catch(retry);}"
                     + "}"
+                    + "window.__ssyoutubeMiniplayerKeepPlaying=true;"
+                    + "function keepPlaying(){"
+                    + "if(!window.__ssyoutubeMiniplayerKeepPlaying){return;}"
+                    + "attempts=0;"
                     + "resume();"
+                    + "}"
+                    + "if(!window.__ssyoutubeMiniplayerResumeInstalled){"
+                    + "window.__ssyoutubeMiniplayerResumeInstalled=true;"
+                    + "document.addEventListener('pause',function(){"
+                    + "setTimeout(keepPlaying,0);"
+                    + "},true);"
+                    + "}"
+                    + "if(!window.__ssyoutubeMiniplayerResumeTimer){"
+                    + "window.__ssyoutubeMiniplayerResumeTimer=setInterval(keepPlaying,500);"
+                    + "}"
+                    + "resume();"
+                    + "})()";
+
+    /** Stops the {@link #MINIPLAYER_PLAYBACK_RESUME_SCRIPT} watchdog. */
+    static final String MINIPLAYER_PLAYBACK_RESUME_RESET_SCRIPT =
+            "(function(){"
+                    + "window.__ssyoutubeMiniplayerKeepPlaying=false;"
+                    + "if(window.__ssyoutubeMiniplayerResumeTimer){"
+                    + "clearInterval(window.__ssyoutubeMiniplayerResumeTimer);"
+                    + "window.__ssyoutubeMiniplayerResumeTimer=null;"
+                    + "}"
+                    + "})()";
+
+    /**
+     * Keeps the results page shown underneath the miniplayer from playing any media of its own.
+     *
+     * <p>The home/search feeds autoplay muted inline previews of the highlighted result. Even
+     * though they are silent they still count as media playback, so starting one takes audio
+     * focus away from the miniplayer's WebView and pauses the video the user is watching.
+     * Blocking playback on the background page keeps that from happening: {@code play()} is
+     * neutralised, {@code autoplay} attributes are stripped, and anything that still manages to
+     * start is paused again from a capturing {@code play} listener.
+     */
+    static final String RESULTS_AUTOPLAY_BLOCK_SCRIPT =
+            "(function(){"
+                    + "window.__ssyoutubeBlockResultsPlayback=true;"
+                    + "function blocked(){return !!window.__ssyoutubeBlockResultsPlayback;}"
+                    + "function suppress(media){"
+                    + "if(!media){return;}"
+                    + "try{media.autoplay=false;}catch(e){}"
+                    + "try{media.removeAttribute('autoplay');}catch(e){}"
+                    + "if(!media.paused){try{media.pause();}catch(e){}}"
+                    + "}"
+                    + "function suppressAll(){"
+                    + "if(!blocked()){return;}"
+                    + "var media=document.querySelectorAll('video,audio');"
+                    + "for(var i=0;i<media.length;i++){suppress(media[i]);}"
+                    + "}"
+                    + "if(!window.__ssyoutubeResultsPlaybackBlockInstalled){"
+                    + "window.__ssyoutubeResultsPlaybackBlockInstalled=true;"
+                    + "var proto=window.HTMLMediaElement&&window.HTMLMediaElement.prototype;"
+                    + "if(proto){"
+                    + "var nativePlay=proto.play;"
+                    + "var nativePause=proto.pause;"
+                    + "proto.play=function(){"
+                    + "if(blocked()){"
+                    + "try{nativePause.call(this);}catch(e){}"
+                    + "return window.Promise?Promise.resolve():undefined;"
+                    + "}"
+                    + "return nativePlay.apply(this,arguments);"
+                    + "};"
+                    + "}"
+                    + "document.addEventListener('play',function(e){"
+                    + "if(blocked()){suppress(e.target);}"
+                    + "},true);"
+                    + "window.__ssyoutubeResultsPlaybackBlockTimer=setInterval(suppressAll,500);"
+                    + "}"
+                    + "suppressAll();"
+                    + "})()";
+
+    /**
+     * Undoes {@link #RESULTS_AUTOPLAY_BLOCK_SCRIPT} when the results page stops being a
+     * background page (i.e. the miniplayer was dismissed and it became the primary view again).
+     */
+    static final String RESULTS_AUTOPLAY_BLOCK_RESET_SCRIPT =
+            "(function(){"
+                    + "window.__ssyoutubeBlockResultsPlayback=false;"
+                    + "if(window.__ssyoutubeResultsPlaybackBlockTimer){"
+                    + "clearInterval(window.__ssyoutubeResultsPlaybackBlockTimer);"
+                    + "window.__ssyoutubeResultsPlaybackBlockTimer=null;"
+                    + "}"
                     + "})()";
 
     /**
@@ -916,6 +1012,7 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private WebView miniplayerWebView;
     private View miniplayerContainer;
+    private boolean miniplayerKeepPlaying;
     private ViewGroup rootContainer;
     private ImageButton settingsButton;
     private SharedPreferences prefs;
@@ -1140,6 +1237,9 @@ public class MainActivity extends AppCompatActivity {
 
         WebView resultsView = new WebView(this);
         configureWebView(resultsView);
+        // Nothing on the background results page may start playing: media starting there takes
+        // audio focus away from the miniplayer and pauses the video the user is watching.
+        resultsView.getSettings().setMediaPlaybackRequiresUserGesture(true);
         rootContainer.addView(resultsView, 0, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         resultsView.loadUrl(resultsUrl);
@@ -1183,6 +1283,7 @@ public class MainActivity extends AppCompatActivity {
 
         miniplayerWebView = videoView;
         miniplayerContainer = container;
+        miniplayerKeepPlaying = resumePlayback;
         videoView.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
         if (resumePlayback) {
             videoView.evaluateJavascript(MINIPLAYER_PLAYBACK_RESUME_SCRIPT, null);
@@ -1195,6 +1296,20 @@ public class MainActivity extends AppCompatActivity {
     private void reapplyMiniplayerView(WebView view) {
         if (miniplayerWebView != null && view == miniplayerWebView) {
             view.evaluateJavascript(MINIPLAYER_VIEW_SCRIPT, null);
+            if (miniplayerKeepPlaying) {
+                view.evaluateJavascript(MINIPLAYER_PLAYBACK_RESUME_SCRIPT, null);
+            }
+        }
+    }
+
+    /**
+     * Blocks media playback on {@code view} while it is the results page shown behind the
+     * miniplayer, so its autoplaying inline previews cannot steal audio focus from (and thereby
+     * pause) the miniplayer video.
+     */
+    private void reapplyResultsPlaybackBlock(WebView view) {
+        if (miniplayerWebView != null && view == webView) {
+            view.evaluateJavascript(RESULTS_AUTOPLAY_BLOCK_SCRIPT, null);
         }
     }
 
@@ -1207,8 +1322,10 @@ public class MainActivity extends AppCompatActivity {
         View container = miniplayerContainer;
         miniplayerWebView = null;
         miniplayerContainer = null;
+        miniplayerKeepPlaying = false;
 
         videoView.evaluateJavascript(MINIPLAYER_VIEW_RESET_SCRIPT, null);
+        videoView.evaluateJavascript(MINIPLAYER_PLAYBACK_RESUME_RESET_SCRIPT, null);
         ((ViewGroup) videoView.getParent()).removeView(videoView);
         rootContainer.removeView(container);
 
@@ -1232,10 +1349,14 @@ public class MainActivity extends AppCompatActivity {
         View container = miniplayerContainer;
         miniplayerWebView = null;
         miniplayerContainer = null;
+        miniplayerKeepPlaying = false;
 
         rootContainer.removeView(container);
         videoView.stopLoading();
         videoView.destroy();
+        // The results page is the primary view again, so it may play media itself.
+        webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+        webView.evaluateJavascript(RESULTS_AUTOPLAY_BLOCK_RESET_SCRIPT, null);
         settingsButton.bringToFront();
         updateSettingsButton(webView.getUrl());
     }
@@ -1583,6 +1704,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             reapplyMiniplayerView(view);
+            reapplyResultsPlaybackBlock(view);
         }
 
         @Override
@@ -1601,6 +1723,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             reapplyMiniplayerView(view);
+            reapplyResultsPlaybackBlock(view);
             CookieManager.getInstance().flush();
             scheduleAppLogoReinjection(view);
         }
