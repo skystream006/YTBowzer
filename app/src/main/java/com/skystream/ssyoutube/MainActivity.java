@@ -695,7 +695,7 @@ public class MainActivity extends AppCompatActivity {
     /** Restarts a video that was playing before its WebView was moved into the miniplayer. */
     static final String MINIPLAYER_PLAYBACK_RESUME_SCRIPT =
             "(function(){"
-                    + "var attempts=0,lookupAttempts=0;"
+                    + "var attempts=0;"
                     + "function retry(){"
                     + "attempts++;"
                     + "if(attempts<5){setTimeout(resume,250);}"
@@ -703,11 +703,9 @@ public class MainActivity extends AppCompatActivity {
                     + "function resume(){"
                     + "var video=document.querySelector('video');"
                     + "if(!video){"
-                    + "lookupAttempts++;"
-                    + "if(lookupAttempts<5){setTimeout(resume,250);}"
+                    + "retry();"
                     + "return;"
                     + "}"
-                    + "lookupAttempts=0;"
                     + "if(video.ended||!video.paused){return;}"
                     + "var playback=video.play();"
                     + "if(playback&&playback.catch){playback.catch(retry);}"
@@ -1116,6 +1114,11 @@ public class MainActivity extends AppCompatActivity {
 
         PipBridge(WebView source) {
             this.source = source;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void minimize(String resultsUrl) {
+            minimize(resultsUrl, true);
         }
 
         @android.webkit.JavascriptInterface
