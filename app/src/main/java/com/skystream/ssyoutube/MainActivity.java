@@ -584,6 +584,9 @@ public class MainActivity extends AppCompatActivity {
      * Lets the user swipe down on a playing video (while not fullscreen) to shrink it into a
      * small picture-in-picture window, revealing the last visited results page (search/home)
      * underneath, mirroring the native YouTube app's miniplayer gesture.
+     *
+     * <p>The miniplayer only styles the mobile player, so this script is injected in mobile
+     * site mode only (see {@link #injectMiniplayerGesture(WebView)}).
      */
     static final String MINIPLAYER_GESTURE_SCRIPT =
             GESTURE_SUPPORT_SCRIPT + ";"
@@ -1333,6 +1336,9 @@ public class MainActivity extends AppCompatActivity {
      * the cached results page (the page the user was on before opening the video) underneath.
      */
     private void enterMiniplayer(String resultsUrl, boolean resumePlayback) {
+        if (desktopMode) {
+            return;
+        }
         if (miniplayerWebView != null || fullscreenView != null) {
             return;
         }
@@ -1398,6 +1404,18 @@ public class MainActivity extends AppCompatActivity {
         }
         settingsButton.bringToFront();
         updateSettingsButton(resultsView.getUrl());
+    }
+
+    /**
+     * Installs the miniplayer swipe gesture, which is a mobile site feature: the miniplayer
+     * view only knows how to strip the mobile watch page down to its player, so in desktop
+     * site mode the gesture is not installed at all.
+     */
+    private void injectMiniplayerGesture(WebView view) {
+        if (desktopMode) {
+            return;
+        }
+        view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
     }
 
     /** Re-applies the video-only miniplayer styling if {@code view} is the miniplayer WebView. */
@@ -1591,6 +1609,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 desktopMode = wantsDesktop;
                 prefs.edit().putBoolean(KEY_DESKTOP_MODE, wantsDesktop).apply();
+                if (wantsDesktop) {
+                    // The miniplayer is a mobile site feature, so restore the video to the
+                    // primary view before the desktop site is loaded into it.
+                    expandMiniplayer();
+                }
                 WebSettings webSettings = webView.getSettings();
                 webSettings.setUserAgentString(Preferences.userAgent(wantsDesktop));
                 webSettings.setSupportZoom(wantsDesktop);
@@ -1808,7 +1831,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
-            view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
+            injectMiniplayerGesture(view);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             reapplyMiniplayerView(view);
@@ -1827,7 +1850,7 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(VIDEO_THUMBNAIL_POSTER_SCRIPT, null);
             view.evaluateJavascript(SUBSCRIBER_COUNT_SCRIPT, null);
             view.evaluateJavascript(FULLSCREEN_GESTURE_SCRIPT, null);
-            view.evaluateJavascript(MINIPLAYER_GESTURE_SCRIPT, null);
+            injectMiniplayerGesture(view);
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             reapplyMiniplayerView(view);

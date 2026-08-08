@@ -31,7 +31,9 @@ keeps you signed in, and blocks advertising/tracking requests.
   count and displays it beside the channel avatar. Comment authors are skipped and the
   lookups are queued a few at a time so they never crowd out the page's own requests.
 - **Video swipe gestures** – swiping up on a playing video enters fullscreen, swiping down
-  exits it, and swiping down on a watch page shrinks the video into a miniplayer. The
+  exits it, and swiping down on a watch page shrinks the video into a miniplayer (mobile
+  site mode only – the miniplayer styling targets the mobile player, so switching to the
+  desktop site disables the gesture and restores an open miniplayer). The
   gestures follow the touch through `touchmove` and also complete on `touchcancel` (which
   the WebView fires when it takes the gesture over), resolve the player through the event's
   composed path so touches inside the player's shadow DOM count, scale their distance
