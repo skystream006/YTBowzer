@@ -219,6 +219,7 @@ public class MainActivityAdScriptTest {
         assertTrue(script.startsWith("(function"));
         assertTrue(script.contains("__ssyoutubeMiniplayerKeepPlaying=false"));
         assertTrue(script.contains("clearTimeout"));
+        assertTrue(script.contains("ResumeObserver.disconnect()"));
     }
 
     @Test

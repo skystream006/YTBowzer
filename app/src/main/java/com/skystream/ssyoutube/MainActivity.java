@@ -776,6 +776,11 @@ public class MainActivity extends AppCompatActivity {
                     + "'pause',window.__ssyoutubeMiniplayerPauseListener,true);"
                     + "}"
                     + "window.__ssyoutubeMiniplayerBoundVideo=null;"
+                    + "window.__ssyoutubeMiniplayerPauseListener=null;"
+                    + "if(window.__ssyoutubeMiniplayerResumeObserver){"
+                    + "window.__ssyoutubeMiniplayerResumeObserver.disconnect();"
+                    + "window.__ssyoutubeMiniplayerResumeObserver=null;"
+                    + "}"
                     + "})()";
 
     /**
