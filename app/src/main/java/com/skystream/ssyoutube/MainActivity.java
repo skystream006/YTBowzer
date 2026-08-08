@@ -752,6 +752,8 @@ public class MainActivity extends AppCompatActivity {
                     + "if(!window.__ssyoutubeMiniplayerResumeObserver&&window.MutationObserver){"
                     + "window.__ssyoutubeMiniplayerResumeObserver=new MutationObserver(function(){"
                     + "if(!window.__ssyoutubeMiniplayerKeepPlaying){return;}"
+                    + "if(window.__ssyoutubeMiniplayerBoundVideo&&"
+                    + "window.__ssyoutubeMiniplayerBoundVideo.isConnected){return;}"
                     + "var video=currentVideo();"
                     + "bindVideo(video);"
                     + "if(video&&video.paused&&!video.ended){scheduleResume(0,0);}"
