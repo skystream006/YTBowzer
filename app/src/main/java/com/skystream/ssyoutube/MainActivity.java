@@ -9,6 +9,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -36,6 +38,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -801,9 +804,22 @@ public class MainActivity extends AppCompatActivity {
     /** Height the bundled logo is downscaled to before it is handed to the WebView. */
     private static final int APP_LOGO_HEIGHT_PX = 96;
 
+    /**
+     * Delays (in milliseconds) at which {@link #APP_LOGO_SCRIPT} is re-injected after
+     * {@code onPageFinished} fires. The mobile masthead's custom elements can attach their
+     * shadow DOM and lay themselves out well after the WebView considers the page "finished",
+     * so a single injection right at that point can run before the logo container exists or
+     * has a size, and the swap is skipped until the script's own polling catches up. Re-running
+     * the injection natively at a few short delays closes that gap without waiting on the
+     * in-page interval.
+     */
+    private static final long[] APP_LOGO_REINJECT_DELAYS_MS = {300L, 1000L, 2500L, 5000L};
+
     private static final String JS_INTERFACE_NAME = "ssYouTubeNative";
 
     private final Map<Integer, byte[]> appLogoCache = new HashMap<>();
+
+    private final Handler logoInjectionHandler = new Handler(Looper.getMainLooper());
 
     private WebView webView;
     private WebView miniplayerWebView;
@@ -879,6 +895,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        logoInjectionHandler.removeCallbacksAndMessages(null);
         if (miniplayerWebView != null) {
             miniplayerWebView.destroy();
             miniplayerWebView = null;
@@ -1443,6 +1460,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
+            logoInjectionHandler.removeCallbacksAndMessages(null);
             updateSettingsButton(url);
             view.evaluateJavascript(AD_JSON_PRUNE_SCRIPT, null);
             view.evaluateJavascript(AD_HIDING_SCRIPT, null);
@@ -1473,6 +1491,24 @@ public class MainActivity extends AppCompatActivity {
             view.evaluateJavascript(RESULTS_PRELOAD_SCRIPT, null);
             view.evaluateJavascript(APP_LOGO_SCRIPT, null);
             CookieManager.getInstance().flush();
+            scheduleAppLogoReinjection(view);
+        }
+
+        /**
+         * Re-runs {@link MainActivity#APP_LOGO_SCRIPT} at a few short delays after the page
+         * finishes loading. See {@link MainActivity#APP_LOGO_REINJECT_DELAYS_MS} for why a
+         * single injection at {@code onPageFinished} is not always enough on the mobile site.
+         */
+        private void scheduleAppLogoReinjection(WebView view) {
+            WeakReference<WebView> viewRef = new WeakReference<>(view);
+            for (long delayMs : APP_LOGO_REINJECT_DELAYS_MS) {
+                logoInjectionHandler.postDelayed(() -> {
+                    WebView target = viewRef.get();
+                    if (target != null && target.isAttachedToWindow()) {
+                        target.evaluateJavascript(APP_LOGO_SCRIPT, null);
+                    }
+                }, delayMs);
+            }
         }
 
         private WebResourceResponse appLogoResponse() {
